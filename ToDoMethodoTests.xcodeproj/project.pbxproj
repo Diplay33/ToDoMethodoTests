@@ -21,6 +21,16 @@
 		E87AEE3F2E12B84D00E6303A /* ToDoMethodoTests.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ToDoMethodoTests.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		04309BD72E12D71E00C203FF /* Exceptions for "ToDoMethodoTests" folder in "ToDoMethodoTests" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Resources/Info.plist,
+			);
+			target = E87AEE3E2E12B84D00E6303A /* ToDoMethodoTests */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		E802349C2E12B95B008C8435 /* ToDoMethodoTestsTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
@@ -29,6 +39,9 @@
 		};
 		E87AEE412E12B84D00E6303A /* ToDoMethodoTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				04309BD72E12D71E00C203FF /* Exceptions for "ToDoMethodoTests" folder in "ToDoMethodoTests" target */,
+			);
 			path = ToDoMethodoTests;
 			sourceTree = "<group>";
 		};
@@ -380,7 +393,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 4683JXP786;
 				ENABLE_PREVIEWS = YES;
-				GENERATE_INFOPLIST_FILE = NO;
+				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = ToDoMethodoTests/Resources/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -417,7 +430,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 4683JXP786;
 				ENABLE_PREVIEWS = YES;
-				GENERATE_INFOPLIST_FILE = NO;
+				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = ToDoMethodoTests/Resources/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
