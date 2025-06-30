@@ -132,6 +132,121 @@ struct TaskItemReadTests {
     }
 }
 
+@MainActor
+struct TaskItemEditTests {
+    let container: ModelContainer
+    let repository: SwiftDataToDoRepository
+    let service: TaskService
+
+    init() {
+        do {
+            let schema = Schema([Item.self])
+            let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
+            container = try ModelContainer(for: schema, configurations: [configuration])
+            repository = SwiftDataToDoRepository(context: container.mainContext)
+            service = TaskService(repository: repository)
+        } catch {
+            fatalError("Failed to set up in-memory SwiftData container: \(error)")
+        }
+    }
+
+    @Test("Modifier le titre d'une tâche existante")
+    func test_updateTask_withValidNewTitle_succeeds() throws {
+        // GIVEN une tâche existante
+        let originalTask = try TaskItem(title: "Titre Original", description: "Description Originale")
+        try repository.saveTask(originalTask)
+
+        // WHEN je modifie son titre avec une valeur valide
+        let updatedTask = try service.updateTask(
+            byIdString: originalTask.id.uuidString,
+            newTitle: "Nouveau Titre",
+            newDescription: "Description Originale" // La description ne change pas
+        )
+
+        // THEN le nouveau titre est sauvegardé
+        #expect(updatedTask.title == "Nouveau Titre")
+        // AND les autres champs sont inchangés
+        #expect(updatedTask.description == "Description Originale")
+        #expect(updatedTask.id == originalTask.id)
+        #expect(updatedTask.createdAt == originalTask.createdAt)
+    }
+
+    @Test("Modifier la description d'une tâche existante")
+    func test_updateTask_withValidNewDescription_succeeds() throws {
+        let originalTask = try TaskItem(title: "Titre Original", description: "Description Originale")
+        try repository.saveTask(originalTask)
+
+        let updatedTask = try service.updateTask(
+            byIdString: originalTask.id.uuidString,
+            newTitle: "Titre Original",
+            newDescription: "Nouvelle Description"
+        )
+
+        #expect(updatedTask.title == "Titre Original")
+        #expect(updatedTask.description == "Nouvelle Description")
+    }
+
+    @Test("Modifier le titre et la description d'une tâche")
+    func test_updateTask_withValidNewTitleAndDescription_succeeds() throws {
+        let originalTask = try TaskItem(title: "Titre Original", description: "Description Originale")
+        try repository.saveTask(originalTask)
+
+        let updatedTask = try service.updateTask(
+            byIdString: originalTask.id.uuidString,
+            newTitle: "Nouveau Titre",
+            newDescription: "Nouvelle Description"
+        )
+
+        #expect(updatedTask.title == "Nouveau Titre")
+        #expect(updatedTask.description == "Nouvelle Description")
+    }
+
+    @Test("Tenter de modifier une tâche avec un titre vide")
+    func test_updateTask_withEmptyTitle_throwsError() throws {
+        let originalTask = try TaskItem(title: "Titre Original")
+        try repository.saveTask(originalTask)
+
+        #expect(throws: TaskError.titleRequired) {
+            try service.updateTask(
+                byIdString: originalTask.id.uuidString,
+                newTitle: "",
+                newDescription: "Description quelconque"
+            )
+        }
+    }
+
+    @Test("Tenter de modifier une tâche avec des valeurs trop longues")
+    func test_updateTask_withOversizedValues_throwsError() throws {
+        let originalTask = try TaskItem(title: "Titre Original")
+        try repository.saveTask(originalTask)
+        let longString101 = String(repeating: "x", count: 101)
+        let longString501 = String(repeating: "y", count: 501)
+
+        // Test du titre trop long
+        #expect(throws: TaskError.titleTooLong(count: 101)) {
+            try service.updateTask(byIdString: originalTask.id.uuidString, newTitle: longString101, newDescription: "")
+        }
+
+        // Test de la description trop longue
+        #expect(throws: TaskError.descriptionTooLong(count: 501)) {
+            try service.updateTask(byIdString: originalTask.id.uuidString, newTitle: "Titre Valide", newDescription: longString501)
+        }
+    }
+
+    @Test("Tenter de modifier une tâche inexistante")
+    func test_updateTask_withNonExistentID_throwsNotFoundError() throws {
+        let nonExistentID = UUID().uuidString
+
+        #expect(throws: TaskError.taskNotFound(id: UUID(uuidString: nonExistentID)!)) {
+            try service.updateTask(
+                byIdString: nonExistentID,
+                newTitle: "Nouveau Titre",
+                newDescription: "Nouvelle Description"
+            )
+        }
+    }
+}
+
 // MARK: - Integration Tests for SwiftData Repository
 
 @MainActor

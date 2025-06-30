@@ -80,4 +80,17 @@ struct TaskItem {
         self.createdAt = persistenceModel.timestamp
         self.status = persistenceModel.status
     }
+
+    func updating(newTitle: String, newDescription: String) throws -> TaskItem {
+        let trimmedTitle = newTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedTitle.isEmpty else { throw TaskError.titleRequired }
+        guard trimmedTitle.count <= 100 else { throw TaskError.titleTooLong(count: trimmedTitle.count) }
+        guard newDescription.count <= 500 else { throw TaskError.descriptionTooLong(count: newDescription.count) }
+
+        var updatedTask = self
+        updatedTask.title = trimmedTitle
+        updatedTask.description = newDescription
+
+        return updatedTask
+    }
 }

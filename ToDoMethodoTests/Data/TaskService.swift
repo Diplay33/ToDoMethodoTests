@@ -29,4 +29,22 @@ class TaskService {
 
         return try repository.getTask(byId: uuid)
     }
+
+    func updateTask(
+        byIdString idString: String,
+        newTitle: String,
+        newDescription: String
+    ) throws -> TaskItem {
+        guard let uuid = UUID(uuidString: idString) else {
+            throw TaskError.invalidIDFormat
+        }
+
+        let originalTask = try repository.getTask(byId: uuid)
+
+        let updatedTask = try originalTask.updating(newTitle: newTitle, newDescription: newDescription)
+
+        try repository.saveTask(updatedTask)
+
+        return updatedTask
+    }
 }
