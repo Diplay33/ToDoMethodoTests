@@ -6,108 +6,186 @@
 //
 
 import Testing
-@testable import ToDoMethodoTests // Import your app module to access its types
+import SwiftData
+@testable import ToDoMethodoTests
 import Foundation
 
-struct ToDoMethodoTestsTests {
+// MARK: - Unit Tests for TaskItem Creation
 
-    @Test("US1: Create task with valid title")
+struct TaskItemCreationTests {
+
+    @Test("Création avec un titre valide")
     func test_createTask_withValidTitle_isCreatedCorrectly() throws {
-        // GIVEN a valid title
-        let title = "My first task"
-        let creationTime = Date()
-
-        // WHEN I create a task
-        let task = try TaskItem(title: title, creationDate: creationTime)
-
-        // THEN it is created with a unique ID, the provided title,
-        // an empty description, the creation date, and a 'TODO' status.
-        #expect(task.title == title, "Title should match the provided one.")
-        #expect(task.description.isEmpty, "Description should be empty by default.")
-        #expect(task.status == .todo, "Status should be 'TODO' by default.")
-
-        let timeDifference = abs(task.createdAt.timeIntervalSince(creationTime))
-        #expect(timeDifference < 1, "Creation date should be accurate to the second.")
+        let task = try TaskItem(title: "Apprendre les tests unitaires")
+        #expect(task.title == "Apprendre les tests unitaires")
+        #expect(task.description.isEmpty)
+        #expect(task.status == .todo)
     }
 
-    @Test("US2: Create task with valid title and description")
+    @Test("Création avec un titre et une description valides")
     func test_createTask_withValidTitleAndDescription_isCreatedCorrectly() throws {
-        // GIVEN a valid title and description
-        let title = "A task with description"
-        let description = "This is a detailed description."
-
-        // WHEN I create a task
-        let task = try TaskItem(title: title, description: description)
-
-        // THEN it is created with the provided title and description
-        #expect(task.title == title)
-        #expect(task.description == description)
+        let task = try TaskItem(title: "Planifier les vacances", description: "Réserver les billets d'avion et l'hôtel.")
+        #expect(task.title == "Planifier les vacances")
+        #expect(task.description == "Réserver les billets d'avion et l'hôtel.")
     }
 
-    @Test("US3: Attempt to create task with empty or whitespace title")
+    @Test("Tentative de création avec un titre vide ou blanc")
     func test_createTask_withEmptyTitle_throwsError() throws {
-        // GIVEN an empty title
-        // WHEN I attempt to create a task
-        // THEN I get a 'Title is required' error
-        #expect(throws: TaskValidationError.titleRequired) {
+        #expect(throws: TaskError.titleRequired) {
             try TaskItem(title: "")
         }
-
-        // GIVEN a title with only spaces
-        // WHEN I attempt to create a task
-        // THEN I get a 'Title is required' error
-        #expect(throws: TaskValidationError.titleRequired) {
+        #expect(throws: TaskError.titleRequired) {
             try TaskItem(title: "   ")
         }
     }
 
-    @Test("US4: Attempt to create task with oversized title")
+    @Test("Tentative de création avec un titre trop long")
     func test_createTask_withOversizedTitle_throwsError() throws {
-        // GIVEN a title with more than 100 characters
-        let longTitle = String(repeating: "A", count: 101)
-
-        // WHEN I attempt to create a task
-        // THEN I get a 'Title cannot exceed 100 characters' error
-        #expect(throws: TaskValidationError.titleTooLong(count: 101)) {
+        let longTitle = String(repeating: "x", count: 101)
+        #expect(throws: TaskError.titleTooLong(count: 101)) {
             try TaskItem(title: longTitle)
         }
     }
 
-    @Test("US5: Attempt to create task with oversized description")
+    @Test("Tentative de création avec une description trop longue")
     func test_createTask_withOversizedDescription_throwsError() throws {
-        // GIVEN a description with more than 500 characters
-        let longDescription = String(repeating: "B", count: 501)
-
-        // WHEN I attempt to create a task
-        // THEN I get a 'Description cannot exceed 500 characters' error
-        #expect(throws: TaskValidationError.descriptionTooLong(count: 501)) {
-            try TaskItem(title: "Valid Title", description: longDescription)
+        let longDescription = String(repeating: "y", count: 501)
+        #expect(throws: TaskError.descriptionTooLong(count: 501)) {
+            try TaskItem(title: "Titre valide", description: longDescription)
         }
     }
 
-    @Test("US6: Create task with title containing leading/trailing spaces")
+    @Test("Création avec un titre contenant des espaces en trop")
     func test_createTask_withSpacedTitle_trimsSpaces() throws {
-        // GIVEN a title with leading and trailing spaces
-        let spacedTitle = "  A valid title with spaces  "
-
-        // WHEN I create a task
-        let task = try TaskItem(title: spacedTitle)
-
-        // THEN the task is created with the title trimmed
-        #expect(task.title == "A valid title with spaces")
+        let task = try TaskItem(title: "  Nettoyer le garage  ")
+        #expect(task.title == "Nettoyer le garage")
     }
 
-    @Test("US7: Newly created task has an accurate creation date")
+    @Test("Vérification de la précision de la date de création")
     func test_taskCreationDate_isAccurate() throws {
-        // GIVEN I am about to create a task
         let beforeCreation = Date()
-
-        // WHEN I create the task
-        let task = try TaskItem(title: "A task to check date")
+        let task = try TaskItem(title: "Vérifier l'heure")
         let afterCreation = Date()
-
-        // THEN its creation date is between the moments before and after creation
         #expect(task.createdAt >= beforeCreation)
         #expect(task.createdAt <= afterCreation)
+    }
+}
+
+@MainActor
+struct TaskItemReadTests {
+    let container: ModelContainer
+    let repository: SwiftDataToDoRepository
+    let service: TaskService
+
+    init() {
+        do {
+            let schema = Schema([Item.self])
+            let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
+            container = try ModelContainer(for: schema, configurations: [configuration])
+            repository = SwiftDataToDoRepository(context: container.mainContext)
+            service = TaskService(repository: repository)
+        } catch {
+            fatalError("Failed to set up in-memory SwiftData container: \(error)")
+        }
+    }
+
+    @Test("Consulter une tâche existante avec un ID valide")
+    func test_findTask_withValidID_returnsTaskDetails() throws {
+        // GIVEN une tâche existante et son ID valide sous forme de chaîne
+        let existingTask = try TaskItem(title: "Tâche à retrouver", description: "Détails importants")
+        try repository.saveTask(existingTask)
+        let validIDString = existingTask.id.uuidString
+
+        // WHEN je consulte cette tâche via le service
+        let foundTask = try service.findTask(byIdString: validIDString)
+
+        // THEN j'obtiens tous ses détails correspondants
+        #expect(foundTask.id == existingTask.id)
+        #expect(foundTask.title == "Tâche à retrouver")
+        #expect(foundTask.description == "Détails importants")
+        #expect(foundTask.status == .todo)
+        #expect(foundTask.createdAt == existingTask.createdAt)
+    }
+
+    @Test("Consulter une tâche avec un ID inexistant")
+    func test_findTask_withNonExistentID_throwsNotFoundError() throws {
+        // GIVEN un ID de format valide mais qui n'existe pas dans le repository
+        let nonExistentID = UUID()
+
+        // WHEN je tente de consulter la tâche avec cet ID
+        // THEN j'obtiens une erreur 'taskNotFound'
+        #expect(throws: TaskError.taskNotFound(id: nonExistentID)) {
+            try service.findTask(byIdString: nonExistentID.uuidString)
+        }
+    }
+
+    @Test("Consulter une tâche avec un ID au mauvais format")
+    func test_findTask_withInvalidIDFormat_throwsInvalidFormatError() throws {
+        // GIVEN un ID au mauvais format
+        let invalidIDString = "ceci-nest-pas-un-uuid"
+
+        // WHEN je tente de consulter la tâche avec cet ID
+        // THEN j'obtiens une erreur 'invalidIDFormat'
+        #expect(throws: TaskError.invalidIDFormat) {
+            try service.findTask(byIdString: invalidIDString)
+        }
+    }
+}
+
+// MARK: - Integration Tests for SwiftData Repository
+
+@MainActor
+struct SwiftDataRepositoryIntegrationTests {
+
+    let container: ModelContainer
+    let repository: SwiftDataToDoRepository
+
+    init() {
+        do {
+            let schema = Schema([Item.self])
+            let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
+            container = try ModelContainer(for: schema, configurations: [configuration])
+            repository = SwiftDataToDoRepository(context: container.mainContext)
+        } catch {
+            fatalError("Failed to set up in-memory SwiftData container: \(error)")
+        }
+    }
+
+    @Test("Save a new task and retrieve it successfully")
+    func test_saveAndRetrieveTask() throws {
+        let newTask = try TaskItem(title: "Test Integration", description: "My Description")
+        try repository.saveTask(newTask)
+        let retrievedTask = try repository.getTask(byId: newTask.id)
+
+        #expect(retrievedTask.id == newTask.id)
+        #expect(retrievedTask.title == "Test Integration")
+        #expect(retrievedTask.description == "My Description")
+    }
+
+    @Test("Attempting to retrieve a non-existent task throws an error")
+    func test_getNonExistentTask_throwsNotFoundError() throws {
+        let nonExistentID = UUID()
+        #expect(throws: TaskError.taskNotFound(id: nonExistentID)) {
+            try repository.getTask(byId: nonExistentID)
+        }
+    }
+
+    @Test("Saving a task with an existing ID updates the task")
+    func test_saveExistingTask_updatesIt() throws {
+        let originalTask = try TaskItem(title: "Original Title")
+        try repository.saveTask(originalTask)
+
+        var modifiedTask = originalTask
+        modifiedTask.title = "Updated Title"
+        try repository.saveTask(modifiedTask)
+
+        let retrievedTask = try repository.getTask(byId: originalTask.id)
+        #expect(retrievedTask.title == "Updated Title")
+
+        let idToFind = originalTask.id
+        let predicate = #Predicate<Item> { $0.id == idToFind }
+        let fetchDescriptor = FetchDescriptor<Item>(predicate: predicate)
+        let count = try container.mainContext.fetchCount(fetchDescriptor)
+        #expect(count == 1)
     }
 }

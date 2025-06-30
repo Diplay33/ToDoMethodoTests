@@ -136,14 +136,14 @@ private struct AddItemView: View {
     // MARK: - Private Methods
 
     private func addItem() {
-        withAnimation {
-            let newItem = Item(
-                title: title.trimmingCharacters(in: .whitespacesAndNewlines),
-                itemDescription: itemDescription,
-                timestamp: Date()
-            )
-            modelContext.insert(newItem)
-        }
+//        withAnimation {
+//            let newItem = Item(
+//                title: title.trimmingCharacters(in: .whitespacesAndNewlines),
+//                itemDescription: itemDescription,
+//                timestamp: Date()
+//            )
+//            modelContext.insert(newItem)
+//        }
     }
 }
 
