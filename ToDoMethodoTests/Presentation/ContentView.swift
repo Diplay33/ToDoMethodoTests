@@ -84,21 +84,35 @@ private struct ItemDetailView: View {
             }
             
             Section("Status") {
-                HStack {
-                    Circle()
-                        .foregroundStyle(returnColor())
-                        .frame(height: 16)
-                    
-                    Text(item.status.rawValue)
+                Menu {
+                    ForEach(TaskStatus.allCases, id: \.self) { status in
+                        Toggle(status.rawValue, isOn: Binding(get: { item.status == status }, set: { _ in item.status = status }))
+                    }
                 }
+                label: {
+                    HStack {
+                        HStack {
+                            Circle()
+                                .foregroundStyle(computeColor(item.status))
+                                .frame(height: 16)
+                            
+                            Text(item.status.rawValue)
+                        }
+                        
+                        Spacer()
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(PlainButtonStyle())
+                .frame(maxWidth: .infinity)
             }
         }
         .navigationTitle("Item Details")
         .navigationBarTitleDisplayMode(.inline)
     }
 
-    private func returnColor() -> Color {
-        switch item.status {
+    private func computeColor(_ status: TaskStatus) -> Color {
+        switch status {
             case .done:
                     .green
             case .inProgress:

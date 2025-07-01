@@ -43,7 +43,7 @@ final class Item {
 // MARK: - Models & Errors
 
 /// Represents the status of a task.
-enum TaskStatus: String, Codable {
+enum TaskStatus: String, Codable, CaseIterable {
     case todo = "TODO"
     case inProgress = "ONGOING"
     case done = "DONE"
