@@ -80,9 +80,28 @@ private struct ItemDetailView: View {
             Section("Created Date") {
                 Text(item.timestamp, format: Date.FormatStyle(date: .long, time: .standard))
             }
+            Section("Status") {
+                HStack {
+                    Circle()
+                        .foregroundStyle(returnColor())
+                        .frame(height: 16)
+                    Text(item.status.rawValue)
+                }
+            }
         }
         .navigationTitle("Item Details")
         .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private func returnColor() -> Color {
+        switch item.status {
+            case .done:
+                    .green
+            case .inProgress:
+                    .orange
+            case .todo:
+                    .blue
+        }
     }
 }
 
@@ -136,14 +155,10 @@ private struct AddItemView: View {
     // MARK: - Private Methods
 
     private func addItem() {
-//        withAnimation {
-//            let newItem = Item(
-//                title: title.trimmingCharacters(in: .whitespacesAndNewlines),
-//                itemDescription: itemDescription,
-//                timestamp: Date()
-//            )
-//            modelContext.insert(newItem)
-//        }
+        withAnimation {
+            let newItem = Item(id: UUID(), title: title.trimmingCharacters(in: .whitespacesAndNewlines), itemDescription: itemDescription, timestamp: Date(), status: .todo)
+            modelContext.insert(newItem)
+        }
     }
 }
 
