@@ -29,11 +29,19 @@ struct TestEnvironmentFactory {
 }
 
 struct TaskTests {
+    @MainActor
     struct TaskItemCreationTests {
+        let container: ModelContainer
+        let repository: SwiftDataToDoRepository
+        let service: TaskService
+
+        init() {
+            (container, repository, service) = TestEnvironmentFactory.create()
+        }
 
         @Test("Création avec un titre valide")
         func test_createTask_withValidTitle_isCreatedCorrectly() throws {
-            let task = try TaskItem(title: "Apprendre les tests unitaires")
+            let task = try service.createTask(title: "Apprendre les tests unitaires", description: "")
             #expect(task.title == "Apprendre les tests unitaires")
             #expect(task.description.isEmpty)
             #expect(task.status == .todo)
@@ -41,7 +49,7 @@ struct TaskTests {
 
         @Test("Création avec un titre et une description valides")
         func test_createTask_withValidTitleAndDescription_isCreatedCorrectly() throws {
-            let task = try TaskItem(title: "Planifier les vacances", description: "Réserver les billets d'avion et l'hôtel.")
+            let task = try service.createTask(title: "Planifier les vacances", description: "Réserver les billets d'avion et l'hôtel.")
             #expect(task.title == "Planifier les vacances")
             #expect(task.description == "Réserver les billets d'avion et l'hôtel.")
         }
@@ -49,10 +57,10 @@ struct TaskTests {
         @Test("Tentative de création avec un titre vide ou blanc")
         func test_createTask_withEmptyTitle_throwsError() throws {
             #expect(throws: TaskError.titleRequired) {
-                try TaskItem(title: "")
+                try service.createTask(title: "")
             }
             #expect(throws: TaskError.titleRequired) {
-                try TaskItem(title: "   ")
+                try service.createTask(title: "   ")
             }
         }
 
@@ -60,7 +68,7 @@ struct TaskTests {
         func test_createTask_withOversizedTitle_throwsError() throws {
             let longTitle = String(repeating: "x", count: 101)
             #expect(throws: TaskError.titleTooLong(count: 101)) {
-                try TaskItem(title: longTitle)
+                try service.createTask(title: longTitle)
             }
         }
 
@@ -68,20 +76,20 @@ struct TaskTests {
         func test_createTask_withOversizedDescription_throwsError() throws {
             let longDescription = String(repeating: "y", count: 501)
             #expect(throws: TaskError.descriptionTooLong(count: 501)) {
-                try TaskItem(title: "Titre valide", description: longDescription)
+                try service.createTask(title: "Titre valide", description: longDescription)
             }
         }
 
         @Test("Création avec un titre contenant des espaces en trop")
         func test_createTask_withSpacedTitle_trimsSpaces() throws {
-            let task = try TaskItem(title: "  Nettoyer le garage  ")
+            let task = try service.createTask(title: "  Nettoyer le garage  ")
             #expect(task.title == "Nettoyer le garage")
         }
 
         @Test("Vérification de la précision de la date de création")
         func test_taskCreationDate_isAccurate() throws {
             let beforeCreation = Date()
-            let task = try TaskItem(title: "Vérifier l'heure")
+            let task = try service.createTask(title: "Vérifier l'heure")
             let afterCreation = Date()
             #expect(task.createdAt >= beforeCreation)
             #expect(task.createdAt <= afterCreation)
@@ -101,7 +109,7 @@ struct TaskTests {
         @Test("Consulter une tâche existante avec un ID valide")
         func test_findTask_withValidID_returnsTaskDetails() throws {
             // GIVEN une tâche existante et son ID valide sous forme de chaîne
-            let existingTask = try TaskItem(title: "Tâche à retrouver", description: "Détails importants")
+            let existingTask = try service.createTask(title: "Tâche à retrouver", description: "Détails importants")
             try repository.saveTask(existingTask)
             let validIDString = existingTask.id.uuidString
 
@@ -154,7 +162,7 @@ struct TaskTests {
         @Test("Modifier le titre d'une tâche existante")
         func test_updateTask_withValidNewTitle_succeeds() throws {
             // GIVEN une tâche existante
-            let originalTask = try TaskItem(title: "Titre Original", description: "Description Originale")
+            let originalTask = try service.createTask(title: "Titre Original", description: "Description Originale")
             try repository.saveTask(originalTask)
 
             // WHEN je modifie son titre avec une valeur valide
@@ -174,7 +182,7 @@ struct TaskTests {
 
         @Test("Modifier la description d'une tâche existante")
         func test_updateTask_withValidNewDescription_succeeds() throws {
-            let originalTask = try TaskItem(title: "Titre Original", description: "Description Originale")
+            let originalTask = try service.createTask(title: "Titre Original", description: "Description Originale")
             try repository.saveTask(originalTask)
 
             let updatedTask = try service.updateTask(
@@ -189,7 +197,7 @@ struct TaskTests {
 
         @Test("Modifier le titre et la description d'une tâche")
         func test_updateTask_withValidNewTitleAndDescription_succeeds() throws {
-            let originalTask = try TaskItem(title: "Titre Original", description: "Description Originale")
+            let originalTask = try service.createTask(title: "Titre Original", description: "Description Originale")
             try repository.saveTask(originalTask)
 
             let updatedTask = try service.updateTask(
@@ -204,7 +212,7 @@ struct TaskTests {
 
         @Test("Tenter de modifier une tâche avec un titre vide")
         func test_updateTask_withEmptyTitle_throwsError() throws {
-            let originalTask = try TaskItem(title: "Titre Original")
+            let originalTask = try service.createTask(title: "Titre Original")
             try repository.saveTask(originalTask)
 
             #expect(throws: TaskError.titleRequired) {
@@ -218,7 +226,7 @@ struct TaskTests {
 
         @Test("Tenter de modifier une tâche avec des valeurs trop longues")
         func test_updateTask_withOversizedValues_throwsError() throws {
-            let originalTask = try TaskItem(title: "Titre Original")
+            let originalTask = try service.createTask(title: "Titre Original")
             try repository.saveTask(originalTask)
             let longString101 = String(repeating: "x", count: 101)
             let longString501 = String(repeating: "y", count: 501)
@@ -259,7 +267,7 @@ struct TaskTests {
         @Test("Changer le statut d'une tâche existante")
         func test_changeStatus_withValidStatus_succeeds() throws {
             // GIVEN une tâche existante avec le statut 'TODO'
-            let originalTask = try TaskItem(title: "Ma Tâche")
+            let originalTask = try service.createTask(title: "Ma Tâche")
             try repository.saveTask(originalTask)
             #expect(originalTask.status == .todo)
 
@@ -318,7 +326,7 @@ struct TaskTests {
         @Test("Supprimer une tâche existante avec succès")
         func test_deleteExistingTask_removesItFromPersistence() throws {
             // GIVEN une tâche existante sauvegardée
-            let taskToDelete = try TaskItem(title: "Tâche à supprimer")
+            let taskToDelete = try service.createTask(title: "Tâche à supprimer")
             try repository.saveTask(taskToDelete)
 
             // Je vérifie qu'elle existe bien avant de la supprimer
@@ -336,7 +344,7 @@ struct TaskTests {
         @Test("Tenter plusieurs opérations sur une tâche supprimée")
         func test_operationsOnDeletedTask_failWithNotFoundError() throws {
             // GIVEN une tâche que je crée puis que je supprime immédiatement
-            let task = try TaskItem(title: "Tâche éphémère")
+            let task = try service.createTask(title: "Tâche éphémère")
             try repository.saveTask(task)
             let deletedTaskID = task.id
             let deletedTaskIDString = deletedTaskID.uuidString

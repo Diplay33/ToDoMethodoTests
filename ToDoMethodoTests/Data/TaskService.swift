@@ -30,6 +30,12 @@ final class TaskService {
         return try repository.getTask(byId: uuid)
     }
 
+    func createTask(title: String, description: String = "") throws -> TaskItem {
+        let newTask = try TaskItem(title: title, description: description)
+        try repository.saveTask(newTask)
+        return newTask
+    }
+    
     func updateTask(
         byIdString idString: String,
         newTitle: String,
