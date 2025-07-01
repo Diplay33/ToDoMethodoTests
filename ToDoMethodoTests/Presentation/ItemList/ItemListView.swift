@@ -12,11 +12,12 @@ struct ItemListView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \Item.timestamp, order: .reverse) private var items: [Item]
     @State private var showingAddItemView = false
+    @State var searchText: String = ""
     
     var body: some View {
         NavigationSplitView {
             List {
-                ForEach(items) { item in
+                ForEach(searchItems(text: searchText)) { item in
                     NavigationLink {
                         ItemDetailView(item: item)
                     } label: {
@@ -24,6 +25,13 @@ struct ItemListView: View {
                     }
                 }
                 .onDelete(perform: deleteItems)
+                
+                if searchItems(text: searchText).isEmpty {
+                    HStack {
+                        Text("No items found")
+                    }
+                    .frame(maxWidth: .infinity)
+                }
             }
             .navigationTitle("ToDo Items")
             .toolbar {
@@ -42,6 +50,7 @@ struct ItemListView: View {
             .sheet(isPresented: $showingAddItemView) {
                 AddItemView()
             }
+            .searchable(text: $searchText, prompt: Text("Search a Task"))
     }
 
     private func deleteItems(offsets: IndexSet) {
@@ -50,6 +59,10 @@ struct ItemListView: View {
                 modelContext.delete(items[index])
             }
         }
+    }
+    
+    private func searchItems(text: String) -> [Item] {
+        searchText.isEmpty ? items : items.filter { $0.title.contains(searchText) }
     }
 }
 
