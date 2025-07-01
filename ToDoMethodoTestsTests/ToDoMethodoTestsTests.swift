@@ -133,6 +133,69 @@ struct TaskItemReadTests {
 }
 
 @MainActor
+struct TaskDeleteTests {
+    let container: ModelContainer
+    let repository: SwiftDataToDoRepository
+    let service: TaskService
+
+    init() {
+        do {
+            let schema = Schema([Item.self])
+            let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
+            container = try ModelContainer(for: schema, configurations: [configuration])
+            repository = SwiftDataToDoRepository(context: container.mainContext)
+            service = TaskService(repository: repository)
+        } catch {
+            fatalError("Failed to set up in-memory SwiftData container: \(error)")
+        }
+    }
+
+    @Test("Supprimer une tâche existante avec succès")
+    func test_deleteExistingTask_removesItFromPersistence() throws {
+        // GIVEN une tâche existante sauvegardée
+        let taskToDelete = try TaskItem(title: "Tâche à supprimer")
+        try repository.saveTask(taskToDelete)
+
+        // Je vérifie qu'elle existe bien avant de la supprimer
+        let _ = try repository.getTask(byId: taskToDelete.id)
+
+        // WHEN je la supprime via le service
+        try service.deleteTask(byIdString: taskToDelete.id.uuidString)
+
+        // THEN une tentative de la consulter à nouveau lève une erreur 'taskNotFound'
+        #expect(throws: TaskError.taskNotFound(id: taskToDelete.id)) {
+            try service.findTask(byIdString: taskToDelete.id.uuidString)
+        }
+    }
+
+    @Test("Tenter plusieurs opérations sur une tâche supprimée")
+    func test_operationsOnDeletedTask_failWithNotFoundError() throws {
+        // GIVEN une tâche que je crée puis que je supprime immédiatement
+        let task = try TaskItem(title: "Tâche éphémère")
+        try repository.saveTask(task)
+        let deletedTaskID = task.id
+        let deletedTaskIDString = deletedTaskID.uuidString
+
+        try service.deleteTask(byIdString: deletedTaskIDString)
+
+        // WHEN je tente plusieurs opérations avec son ancien ID
+        // THEN toutes les tentatives doivent échouer avec 'taskNotFound'
+        #expect(throws: TaskError.taskNotFound(id: deletedTaskID), "La consultation doit échouer") {
+            try service.findTask(byIdString: deletedTaskIDString)
+        }
+        #expect(throws: TaskError.taskNotFound(id: deletedTaskID), "La suppression doit échouer") {
+            try service.deleteTask(byIdString: deletedTaskIDString)
+        }
+        #expect(throws: TaskError.taskNotFound(id: deletedTaskID), "La modification doit échouer") {
+            try service.updateTask(byIdString: deletedTaskIDString, newTitle: "Titre", newDescription: "Desc")
+        }
+        #expect(throws: TaskError.taskNotFound(id: deletedTaskID), "Le changement de statut doit échouer") {
+            try service.changeTaskStatus(byIdString: deletedTaskIDString, newStatus: .done)
+        }
+    }
+}
+
+@MainActor
 struct TaskItemEditTests {
     let container: ModelContainer
     let repository: SwiftDataToDoRepository
@@ -247,6 +310,75 @@ struct TaskItemEditTests {
     }
 }
 
+@MainActor
+struct TaskItemEditStatusTests {
+    let container: ModelContainer
+    let repository: SwiftDataToDoRepository
+    let service: TaskService
+
+    init() {
+        do {
+            let schema = Schema([Item.self])
+            let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
+            container = try ModelContainer(for: schema, configurations: [configuration])
+            repository = SwiftDataToDoRepository(context: container.mainContext)
+            service = TaskService(repository: repository)
+        } catch {
+            fatalError("Failed to set up in-memory SwiftData container: \(error)")
+        }
+    }
+
+    @Test("Changer le statut d'une tâche existante")
+    func test_changeStatus_withValidStatus_succeeds() throws {
+        // GIVEN une tâche existante avec le statut 'TODO'
+        let originalTask = try TaskItem(title: "Ma Tâche")
+        try repository.saveTask(originalTask)
+        #expect(originalTask.status == .todo)
+
+        // WHEN je change son statut vers 'ONGOING'
+        let updatedTask = try service.changeTaskStatus(
+            byIdString: originalTask.id.uuidString,
+            newStatus: .inProgress
+        )
+
+        // THEN le statut est bien mis à jour
+        #expect(updatedTask.status == .inProgress)
+
+        // AND la modification est bien persistée
+        let persistedTask = try repository.getTask(byId: originalTask.id)
+        #expect(persistedTask.status == .inProgress)
+    }
+
+    @Test("Tenter de créer un statut avec une valeur invalide")
+    func test_taskStatusInit_fromInvalidRawValue_returnsNil() throws {
+        // GIVEN une chaîne de caractères qui ne correspond à aucun statut valide
+        let invalidStatusString = "PENDING"
+
+        // WHEN je tente de créer un TaskStatus à partir de cette chaîne
+        let status = TaskStatus(rawValue: invalidStatusString)
+
+        // THEN l'initialisation échoue et retourne nil
+        #expect(status == nil)
+
+        // Dans une vraie application, le code qui reçoit la chaîne invalide
+        // serait responsable de lever l'erreur `TaskError.invalidStatus`.
+    }
+
+    @Test("Tenter de changer le statut d'une tâche inexistante")
+    func test_changeStatus_ofNonExistentTask_throwsNotFoundError() throws {
+        // GIVEN un ID qui ne correspond à aucune tâche
+        let nonExistentID = UUID()
+
+        // WHEN je tente de changer le statut pour cet ID
+        // THEN j'obtiens une erreur 'taskNotFound'
+        #expect(throws: TaskError.taskNotFound(id: nonExistentID)) {
+            try service.changeTaskStatus(
+                byIdString: nonExistentID.uuidString,
+                newStatus: .done
+            )
+        }
+    }
+}
 // MARK: - Integration Tests for SwiftData Repository
 
 @MainActor

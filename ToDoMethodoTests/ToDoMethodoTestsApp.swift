@@ -24,6 +24,7 @@ struct ToDoMethodoTestsApp: App {
 
         do {
             sharedModelContainer = try ModelContainer(for: schema, configurations: [modelConfiguration])
+            ItemManager.clearAllItems(container: sharedModelContainer)
         } catch {
             fatalError("Could not create ModelContainer: \(error)")
         }

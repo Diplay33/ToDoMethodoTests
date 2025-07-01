@@ -14,4 +14,5 @@ enum TaskError: Error, Equatable {
     case descriptionTooLong(count: Int)
     case invalidIDFormat
     case taskNotFound(id: UUID)
+    case invalidStatus
 }

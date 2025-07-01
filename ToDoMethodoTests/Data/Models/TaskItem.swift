@@ -45,7 +45,7 @@ final class Item {
 /// Represents the status of a task.
 enum TaskStatus: String, Codable {
     case todo = "TODO"
-    case inProgress = "IN PROGRESS"
+    case inProgress = "ONGOING"
     case done = "DONE"
 }
 
@@ -91,6 +91,12 @@ struct TaskItem {
         updatedTask.title = trimmedTitle
         updatedTask.description = newDescription
 
+        return updatedTask
+    }
+
+    func updatingStatus(to newStatus: TaskStatus) -> TaskItem {
+        var updatedTask = self
+        updatedTask.status = newStatus
         return updatedTask
     }
 }

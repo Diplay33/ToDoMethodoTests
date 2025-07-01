@@ -9,7 +9,7 @@ import Foundation
 import SwiftData
 
 /// An implementation of the ToDo repository that uses SwiftData for persistence.
-class SwiftDataToDoRepository {
+final class SwiftDataToDoRepository {
     private let context: ModelContext
 
     init(context: ModelContext) {
@@ -30,6 +30,18 @@ class SwiftDataToDoRepository {
     func saveTask(_ task: TaskItem) throws {
         let itemToSave = Item(from: task)
         context.insert(itemToSave)
+        try context.save()
+    }
+
+    func deleteTask(byId id: UUID) throws {
+        let predicate = #Predicate<Item> { $0.id == id }
+        let fetchDescriptor = FetchDescriptor<Item>(predicate: predicate)
+
+        guard let itemToDelete = try context.fetch(fetchDescriptor).first else {
+            throw TaskError.taskNotFound(id: id)
+        }
+
+        context.delete(itemToDelete)
         try context.save()
     }
 }
