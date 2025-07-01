@@ -117,7 +117,6 @@ struct TaskTests {
         func test_findTask_withValidID_returnsTaskDetails() throws {
             // GIVEN une tâche existante et son ID valide sous forme de chaîne
             let existingTask = try service.createTask(title: "Tâche à retrouver", description: "Détails importants")
-            try repository.saveTask(existingTask)
             let validIDString = existingTask.id.uuidString
 
             // WHEN je consulte cette tâche via le service
@@ -169,7 +168,6 @@ struct TaskTests {
         func test_updateTask_withValidNewTitle_succeeds() throws {
             // GIVEN une tâche existante
             let originalTask = try service.createTask(title: "Titre Original", description: "Description Originale")
-            try repository.saveTask(originalTask)
 
             // WHEN je modifie son titre avec une valeur valide
             let updatedTask = try service.updateTask(
@@ -189,7 +187,6 @@ struct TaskTests {
         @Test("Modifier la description d'une tâche existante")
         func test_updateTask_withValidNewDescription_succeeds() throws {
             let originalTask = try service.createTask(title: "Titre Original", description: "Description Originale")
-            try repository.saveTask(originalTask)
 
             let updatedTask = try service.updateTask(
                 byIdString: originalTask.id.uuidString,
@@ -204,7 +201,6 @@ struct TaskTests {
         @Test("Modifier le titre et la description d'une tâche")
         func test_updateTask_withValidNewTitleAndDescription_succeeds() throws {
             let originalTask = try service.createTask(title: "Titre Original", description: "Description Originale")
-            try repository.saveTask(originalTask)
 
             let updatedTask = try service.updateTask(
                 byIdString: originalTask.id.uuidString,
@@ -219,7 +215,6 @@ struct TaskTests {
         @Test("Tenter de modifier une tâche avec un titre vide")
         func test_updateTask_withEmptyTitle_throwsError() throws {
             let originalTask = try service.createTask(title: "Titre Original")
-            try repository.saveTask(originalTask)
 
             #expect(throws: TaskError.titleRequired) {
                 try service.updateTask(
@@ -233,7 +228,6 @@ struct TaskTests {
         @Test("Tenter de modifier une tâche avec des valeurs trop longues")
         func test_updateTask_withOversizedValues_throwsError() throws {
             let originalTask = try service.createTask(title: "Titre Original")
-            try repository.saveTask(originalTask)
             let longString101 = String(repeating: "x", count: 101)
             let longString501 = String(repeating: "y", count: 501)
 
@@ -273,7 +267,6 @@ struct TaskTests {
         func test_changeStatus_withValidStatus_succeeds() throws {
             // GIVEN une tâche existante avec le statut 'TODO'
             let originalTask = try service.createTask(title: "Ma Tâche")
-            try repository.saveTask(originalTask)
             #expect(originalTask.status == .todo)
 
             // WHEN je change son statut vers 'ONGOING'
@@ -322,39 +315,37 @@ struct TaskTests {
     struct TaskDeleteTests {
         let repository: TaskRepositoryProtocol
         let service: TaskService
-
+        
         init() {
             (repository, service) = MemoryTestEnvironmentFactory.create()
         }
-
+        
         @Test("Supprimer une tâche existante avec succès")
         func test_deleteExistingTask_removesItFromPersistence() throws {
             // GIVEN une tâche existante sauvegardée
             let taskToDelete = try service.createTask(title: "Tâche à supprimer")
-            try repository.saveTask(taskToDelete)
-
+            
             // Je vérifie qu'elle existe bien avant de la supprimer
             let _ = try repository.getTask(byId: taskToDelete.id)
-
+            
             // WHEN je la supprime via le service
             try service.deleteTask(byIdString: taskToDelete.id.uuidString)
-
+            
             // THEN une tentative de la consulter à nouveau lève une erreur 'taskNotFound'
             #expect(throws: TaskError.taskNotFound(id: taskToDelete.id)) {
                 try service.findTask(byIdString: taskToDelete.id.uuidString)
             }
         }
-
+        
         @Test("Tenter plusieurs opérations sur une tâche supprimée")
         func test_operationsOnDeletedTask_failWithNotFoundError() throws {
             // GIVEN une tâche que je crée puis que je supprime immédiatement
             let task = try service.createTask(title: "Tâche éphémère")
-            try repository.saveTask(task)
             let deletedTaskID = task.id
             let deletedTaskIDString = deletedTaskID.uuidString
-
+            
             try service.deleteTask(byIdString: deletedTaskIDString)
-
+            
             // WHEN je tente plusieurs opérations avec son ancien ID
             // THEN toutes les tentatives doivent échouer avec 'taskNotFound'
             #expect(throws: TaskError.taskNotFound(id: deletedTaskID), "La consultation doit échouer") {
@@ -370,7 +361,7 @@ struct TaskTests {
                 try service.changeTaskStatus(byIdString: deletedTaskIDString, newStatus: .done)
             }
         }
-
+    }
         @MainActor
         struct TaskPaginationTests {
             let repository: MemoryRepository
@@ -384,7 +375,7 @@ struct TaskTests {
             func test_listTasks_fetchesFirstPageCorrectly() throws {
                 // GIVEN 25 tâches dans le repository
                 for i in 1...25 {
-                    try repository.saveTask(TaskItem(title: "Task \(i)"))
+                    let _ = try service.createTask(title: "Task \(i)")
                 }
 
                 // WHEN je demande la première page avec une taille de 10
@@ -401,7 +392,7 @@ struct TaskTests {
             func test_listTasks_fetchesSecondPageCorrectly() throws {
                 // GIVEN 25 tâches
                 for i in 1...25 {
-                    try repository.saveTask(TaskItem(title: "Task \(i)"))
+                    let _ = try service.createTask(title: "Task \(i)")
                 }
 
                 // WHEN je demande la deuxième page avec une taille de 10
@@ -431,7 +422,7 @@ struct TaskTests {
             func test_listTasks_withDefaultParameters_returnsFirstPageOf20() throws {
                 // GIVEN 25 tâches
                 for i in 1...25 {
-                    try repository.saveTask(TaskItem(title: "Task \(i)"))
+                    let _ = try service.createTask(title: "Task \(i)")
                 }
 
                 // WHEN je demande la liste sans spécifier de paramètres
@@ -469,7 +460,6 @@ struct TaskTests {
                 #expect(result.items.isEmpty, "La liste d'items doit être vide")
                 #expect(result.metadata.totalItems == 0, "Le nombre total d'éléments doit être 0")
                 #expect(result.metadata.totalPages == 0, "Le nombre total de pages doit être 0")
-            }
         }
     }
     // MARK: - Integration Tests for SwiftData Repository
