@@ -29,23 +29,22 @@ struct TestEnvironmentFactory {
 }
 
 @MainActor
-struct ServiceTestEnvironmentFactory {
-    static func create() -> (service: TaskService, repository: MemoryRepository) {
+struct MemoryTestEnvironmentFactory {
+    static func create() -> (repository: MemoryRepository,service: TaskService) {
         let repository = MemoryRepository()
         let service = TaskService(repository: repository)
-        return (service, repository)
+        return (repository, service)
     }
 }
 
 struct TaskTests {
     @MainActor
     struct TaskItemCreationTests {
-        let container: ModelContainer
-        let repository: SwiftDataToDoRepository
+        let repository: TaskRepositoryProtocol
         let service: TaskService
 
         init() {
-            (container, repository, service) = TestEnvironmentFactory.create()
+            (repository, service) = MemoryTestEnvironmentFactory.create()
         }
 
         @Test("Création avec un titre valide")
@@ -107,12 +106,11 @@ struct TaskTests {
 
     @MainActor
     struct TaskItemReadTests {
-        let container: ModelContainer
-        let repository: SwiftDataToDoRepository
+        let repository: TaskRepositoryProtocol
         let service: TaskService
 
         init() {
-            (container, repository, service) = TestEnvironmentFactory.create()
+            (repository, service) = MemoryTestEnvironmentFactory.create()
         }
 
         @Test("Consulter une tâche existante avec un ID valide")
@@ -160,12 +158,11 @@ struct TaskTests {
 
     @MainActor
     struct TaskItemEditTests {
-        let container: ModelContainer
-        let repository: SwiftDataToDoRepository
+        let repository: TaskRepositoryProtocol
         let service: TaskService
 
         init() {
-            (container, repository, service) = TestEnvironmentFactory.create()
+            (repository, service) = MemoryTestEnvironmentFactory.create()
         }
 
         @Test("Modifier le titre d'une tâche existante")
@@ -265,12 +262,11 @@ struct TaskTests {
 
     @MainActor
     struct TaskItemEditStatusTests {
-        let container: ModelContainer
-        let repository: SwiftDataToDoRepository
+        let repository: TaskRepositoryProtocol
         let service: TaskService
 
         init() {
-            (container, repository, service) = TestEnvironmentFactory.create()
+            (repository, service) = MemoryTestEnvironmentFactory.create()
         }
 
         @Test("Changer le statut d'une tâche existante")
@@ -324,12 +320,11 @@ struct TaskTests {
 
     @MainActor
     struct TaskDeleteTests {
-        let container: ModelContainer
-        let repository: SwiftDataToDoRepository
+        let repository: TaskRepositoryProtocol
         let service: TaskService
 
         init() {
-            (container, repository, service) = TestEnvironmentFactory.create()
+            (repository, service) = MemoryTestEnvironmentFactory.create()
         }
 
         @Test("Supprimer une tâche existante avec succès")
@@ -378,11 +373,11 @@ struct TaskTests {
 
         @MainActor
         struct TaskPaginationTests {
-            let service: TaskService
             let repository: MemoryRepository
+            let service: TaskService
 
             init() {
-                (service, repository) = ServiceTestEnvironmentFactory.create()
+                (repository, service) = MemoryTestEnvironmentFactory.create()
             }
 
             @Test("Obtenir la première page d'une liste de 25 tâches")

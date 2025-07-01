@@ -8,7 +8,7 @@
 import Foundation
 import SwiftData
 
-/// An implementation of the ToDo repository that uses SwiftData for persistence.
+/// An implementation of the task repository that uses SwiftData for persistence.
 final class SwiftDataToDoRepository: TaskRepositoryProtocol {
     private let context: ModelContext
 

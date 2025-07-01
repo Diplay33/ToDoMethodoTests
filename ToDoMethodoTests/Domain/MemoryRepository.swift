@@ -7,7 +7,7 @@
 
 import Foundation
 
-/// An in-memory implementation of the ToDo repository for testing purposes.
+/// An in-memory implementation of the task repository for testing purposes.
 /// It simulates the behavior of a real database using a simple dictionary.
 final class MemoryRepository: TaskRepositoryProtocol {
 
