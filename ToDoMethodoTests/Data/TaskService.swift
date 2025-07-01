@@ -8,7 +8,7 @@
 import Foundation
 
 /// Service layer that encapsulates the main business logic for managing tasks.
-class TaskService {
+final class TaskService {
     private let repository: SwiftDataToDoRepository
 
     /// Initializes the service with a persistence layer.
