@@ -9,7 +9,7 @@ import Foundation
 import SwiftData
 
 /// An implementation of the ToDo repository that uses SwiftData for persistence.
-final class SwiftDataToDoRepository {
+final class SwiftDataToDoRepository: TaskRepositoryProtocol {
     private let context: ModelContext
 
     init(context: ModelContext) {
@@ -43,5 +43,22 @@ final class SwiftDataToDoRepository {
 
         context.delete(itemToDelete)
         try context.save()
+    }
+
+    func listTasks(page: Int, pageSize: Int) throws -> PaginatedResult<TaskItem> {
+        let totalItemsDescriptor = FetchDescriptor<Item>()
+        let totalItems = try context.fetchCount(totalItemsDescriptor)
+        let metadata = PaginationMetadata(currentPage: page, pageSize: pageSize, totalItems: totalItems)
+
+        var pageDescriptor = FetchDescriptor<Item>()
+        pageDescriptor.sortBy = [SortDescriptor(\.timestamp, order: .reverse)]
+        pageDescriptor.fetchLimit = pageSize
+        pageDescriptor.fetchOffset = (page - 1) * pageSize
+
+        let items = try context.fetch(pageDescriptor)
+
+        let taskItems = items.map { TaskItem(from: $0) }
+
+        return PaginatedResult(items: taskItems, metadata: metadata)
     }
 }

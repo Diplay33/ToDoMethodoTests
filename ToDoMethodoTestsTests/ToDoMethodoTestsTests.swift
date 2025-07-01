@@ -28,6 +28,15 @@ struct TestEnvironmentFactory {
     }
 }
 
+@MainActor
+struct ServiceTestEnvironmentFactory {
+    static func create() -> (service: TaskService, repository: MemoryRepository) {
+        let repository = MemoryRepository()
+        let service = TaskService(repository: repository)
+        return (service, repository)
+    }
+}
+
 struct TaskTests {
     @MainActor
     struct TaskItemCreationTests {
@@ -364,6 +373,107 @@ struct TaskTests {
             }
             #expect(throws: TaskError.taskNotFound(id: deletedTaskID), "Le changement de statut doit échouer") {
                 try service.changeTaskStatus(byIdString: deletedTaskIDString, newStatus: .done)
+            }
+        }
+
+        @MainActor
+        struct TaskPaginationTests {
+            let service: TaskService
+            let repository: MemoryRepository
+
+            init() {
+                (service, repository) = ServiceTestEnvironmentFactory.create()
+            }
+
+            @Test("Obtenir la première page d'une liste de 25 tâches")
+            func test_listTasks_fetchesFirstPageCorrectly() throws {
+                // GIVEN 25 tâches dans le repository
+                for i in 1...25 {
+                    try repository.saveTask(TaskItem(title: "Task \(i)"))
+                }
+
+                // WHEN je demande la première page avec une taille de 10
+                let result = try service.listTasks(page: 1, pageSize: 10)
+
+                // THEN j'obtiens 10 tâches et les bonnes métadonnées
+                #expect(result.items.count == 10, "La page doit contenir 10 éléments")
+                #expect(result.metadata.currentPage == 1, "La page actuelle doit être 1")
+                #expect(result.metadata.totalItems == 25, "Le nombre total d'éléments doit être 25")
+                #expect(result.metadata.totalPages == 3, "Le nombre total de pages doit être 3")
+            }
+
+            @Test("Obtenir la deuxième page d'une liste")
+            func test_listTasks_fetchesSecondPageCorrectly() throws {
+                // GIVEN 25 tâches
+                for i in 1...25 {
+                    try repository.saveTask(TaskItem(title: "Task \(i)"))
+                }
+
+                // WHEN je demande la deuxième page avec une taille de 10
+                let result = try service.listTasks(page: 2, pageSize: 10)
+
+                // THEN j'obtiens les 10 tâches suivantes
+                #expect(result.items.count == 10, "La page doit contenir 10 éléments")
+                #expect(result.metadata.currentPage == 2, "La page actuelle doit être 2")
+            }
+
+            @Test("Demander une page au-delà des limites retourne une liste vide")
+            func test_listTasks_withOutOfBoundsPage_returnsEmptyList() throws {
+                // GIVEN une seule tâche
+                try repository.saveTask(TaskItem(title: "Une Tâche"))
+
+                // WHEN je demande la deuxième page (qui n'existe pas)
+                let result = try service.listTasks(page: 2, pageSize: 10)
+
+                // THEN j'obtiens une liste vide mais les bonnes métadonnées
+                #expect(result.items.isEmpty, "La liste d'items doit être vide")
+                #expect(result.metadata.currentPage == 2, "La page demandée reste 2")
+                #expect(result.metadata.totalItems == 1, "Le total reste 1")
+                #expect(result.metadata.totalPages == 1, "Le nombre de pages reste 1")
+            }
+
+            @Test("Demander la liste avec les paramètres par défaut")
+            func test_listTasks_withDefaultParameters_returnsFirstPageOf20() throws {
+                // GIVEN 25 tâches
+                for i in 1...25 {
+                    try repository.saveTask(TaskItem(title: "Task \(i)"))
+                }
+
+                // WHEN je demande la liste sans spécifier de paramètres
+                let result = try service.listTasks()
+
+                // THEN j'obtiens la première page avec une taille par défaut de 20
+                #expect(result.items.count == 20, "La page doit contenir 20 éléments par défaut")
+                #expect(result.metadata.pageSize == 20, "La taille de page doit être 20")
+                #expect(result.metadata.currentPage == 1, "La page doit être 1")
+            }
+
+            @Test("Demander la liste avec une taille de page invalide lève une erreur")
+            func test_listTasks_withInvalidPageSize_throwsError() throws {
+                // WHEN je spécifie une taille de page de zéro ou négative
+                // THEN j'obtiens une erreur `invalidPageParameters`
+                #expect(throws: TaskError.invalidPageParameters) {
+                    try service.listTasks(pageSize: 0)
+                }
+                #expect(throws: TaskError.invalidPageParameters) {
+                    try service.listTasks(pageSize: -1)
+                }
+                #expect(throws: TaskError.invalidPageParameters) {
+                    try service.listTasks(page: 0)
+                }
+            }
+
+            @Test("Demander la liste quand il n'y a aucune tâche")
+            func test_listTasks_whenEmpty_returnsEmptyResult() throws {
+                // GIVEN un repository vide (il est vide par défaut à l'initialisation du test)
+
+                // WHEN je demande la liste
+                let result = try service.listTasks()
+
+                // THEN j'obtiens un résultat vide avec des métadonnées à zéro
+                #expect(result.items.isEmpty, "La liste d'items doit être vide")
+                #expect(result.metadata.totalItems == 0, "Le nombre total d'éléments doit être 0")
+                #expect(result.metadata.totalPages == 0, "Le nombre total de pages doit être 0")
             }
         }
     }

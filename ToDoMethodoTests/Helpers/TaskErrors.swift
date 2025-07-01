@@ -8,11 +8,12 @@
 import Foundation
 
 /// Defines domain-specific errors for the ToDo feature.
-enum TaskError: Error, Equatable {
+enum TaskError: Error, Equatable, Sendable {
     case titleRequired
     case titleTooLong(count: Int)
     case descriptionTooLong(count: Int)
     case invalidIDFormat
     case taskNotFound(id: UUID)
     case invalidStatus
+    case invalidPageParameters
 }

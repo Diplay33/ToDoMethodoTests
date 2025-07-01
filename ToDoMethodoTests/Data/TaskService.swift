@@ -9,11 +9,11 @@ import Foundation
 
 /// Service layer that encapsulates the main business logic for managing tasks.
 final class TaskService {
-    private let repository: SwiftDataToDoRepository
+    private let repository: TaskRepositoryProtocol
 
     /// Initializes the service with a persistence layer.
     /// - Parameter repository: An object conforming to `SwiftDataToDoRepository`.
-    init(repository: SwiftDataToDoRepository) {
+    init(repository: TaskRepositoryProtocol) {
         self.repository = repository
     }
 
@@ -67,4 +67,12 @@ final class TaskService {
 
         try repository.deleteTask(byId: uuid)
     }
+
+    func listTasks(page: Int = 1, pageSize: Int = 20) throws -> PaginatedResult<TaskItem> {
+        guard page > 0, pageSize > 0 else {
+            throw TaskError.invalidPageParameters
+        }
+        return try repository.listTasks(page: page, pageSize: pageSize)
+    }
+
 }

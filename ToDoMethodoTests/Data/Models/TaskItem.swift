@@ -51,7 +51,7 @@ enum TaskStatus: String, Codable, CaseIterable {
 
 /// Represents a single task item.
 /// The creation logic and validation are handled by its throwing initializer.
-struct TaskItem {
+struct TaskItem: Equatable {
     var id: UUID
     var title: String
     var description: String

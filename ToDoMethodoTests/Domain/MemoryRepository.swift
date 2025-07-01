@@ -9,7 +9,7 @@ import Foundation
 
 /// An in-memory implementation of the ToDo repository for testing purposes.
 /// It simulates the behavior of a real database using a simple dictionary.
-final class MemoryRepository {
+final class MemoryRepository: TaskRepositoryProtocol {
 
     // MARK: - Private Properties
 
@@ -44,5 +44,23 @@ final class MemoryRepository {
     /// A helper method to clear the repository state between tests if needed.
     func clear() {
         tasks = [:]
+    }
+
+    func listTasks(page: Int, pageSize: Int) throws -> PaginatedResult<TaskItem> {
+        let allTasks = tasks.values.sorted { $0.createdAt > $1.createdAt }
+        let totalItems = allTasks.count
+
+        let metadata = PaginationMetadata(currentPage: page, pageSize: pageSize, totalItems: totalItems)
+
+        guard page > 0, page <= metadata.totalPages || totalItems == 0 else {
+            return PaginatedResult(items: [], metadata: metadata)
+        }
+
+        let startIndex = (page - 1) * pageSize
+        let endIndex = min(startIndex + pageSize, totalItems)
+
+        let pageItems = Array(allTasks[startIndex..<endIndex])
+
+        return PaginatedResult(items: pageItems, metadata: metadata)
     }
 }
