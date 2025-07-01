@@ -12,6 +12,22 @@ import Foundation
 
 // MARK: - Unit Tests for TaskItem Creation
 
+@MainActor
+struct TestEnvironmentFactory {
+    static func create() -> (container: ModelContainer, repository: SwiftDataToDoRepository, service: TaskService) {
+        do {
+            let schema = Schema([Item.self])
+            let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
+            let container = try ModelContainer(for: schema, configurations: [configuration])
+            let repository = SwiftDataToDoRepository(context: container.mainContext)
+            let service = TaskService(repository: repository)
+            return (container, repository, service)
+        } catch {
+            fatalError("Échec de la création du conteneur SwiftData en mémoire : \(error)")
+        }
+    }
+}
+
 struct TaskTests {
     struct TaskItemCreationTests {
 
@@ -79,15 +95,7 @@ struct TaskTests {
         let service: TaskService
 
         init() {
-            do {
-                let schema = Schema([Item.self])
-                let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
-                container = try ModelContainer(for: schema, configurations: [configuration])
-                repository = SwiftDataToDoRepository(context: container.mainContext)
-                service = TaskService(repository: repository)
-            } catch {
-                fatalError("Failed to set up in-memory SwiftData container: \(error)")
-            }
+            (container, repository, service) = TestEnvironmentFactory.create()
         }
 
         @Test("Consulter une tâche existante avec un ID valide")
@@ -140,15 +148,7 @@ struct TaskTests {
         let service: TaskService
 
         init() {
-            do {
-                let schema = Schema([Item.self])
-                let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
-                container = try ModelContainer(for: schema, configurations: [configuration])
-                repository = SwiftDataToDoRepository(context: container.mainContext)
-                service = TaskService(repository: repository)
-            } catch {
-                fatalError("Failed to set up in-memory SwiftData container: \(error)")
-            }
+            (container, repository, service) = TestEnvironmentFactory.create()
         }
 
         @Test("Modifier le titre d'une tâche existante")
@@ -253,15 +253,7 @@ struct TaskTests {
         let service: TaskService
 
         init() {
-            do {
-                let schema = Schema([Item.self])
-                let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
-                container = try ModelContainer(for: schema, configurations: [configuration])
-                repository = SwiftDataToDoRepository(context: container.mainContext)
-                service = TaskService(repository: repository)
-            } catch {
-                fatalError("Failed to set up in-memory SwiftData container: \(error)")
-            }
+            (container, repository, service) = TestEnvironmentFactory.create()
         }
 
         @Test("Changer le statut d'une tâche existante")
@@ -320,15 +312,7 @@ struct TaskTests {
         let service: TaskService
 
         init() {
-            do {
-                let schema = Schema([Item.self])
-                let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
-                container = try ModelContainer(for: schema, configurations: [configuration])
-                repository = SwiftDataToDoRepository(context: container.mainContext)
-                service = TaskService(repository: repository)
-            } catch {
-                fatalError("Failed to set up in-memory SwiftData container: \(error)")
-            }
+            (container, repository, service) = TestEnvironmentFactory.create()
         }
 
         @Test("Supprimer une tâche existante avec succès")
