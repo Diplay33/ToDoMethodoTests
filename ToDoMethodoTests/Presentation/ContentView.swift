@@ -72,19 +72,23 @@ private struct ItemDetailView: View {
     var body: some View {
         Form {
             Section("Title") {
-                Text(item.title)
+                TextField("Type a title...", text: Binding(get: { item.title }, set: { item.title = $0 }))
             }
+            
             Section("Description") {
-                Text(item.itemDescription.isEmpty ? "No description" : item.itemDescription)
+                TextField("Description is empty", text: Binding(get: { item.itemDescription }, set: { item.itemDescription = $0 }))
             }
+            
             Section("Created Date") {
                 Text(item.timestamp, format: Date.FormatStyle(date: .long, time: .standard))
             }
+            
             Section("Status") {
                 HStack {
                     Circle()
                         .foregroundStyle(returnColor())
                         .frame(height: 16)
+                    
                     Text(item.status.rawValue)
                 }
             }
