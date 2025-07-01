@@ -11,13 +11,14 @@ import SwiftData
 struct ItemListView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \Item.timestamp, order: .reverse) private var items: [Item]
+    @State var filteredItems: [Item] = []
     @State private var showingAddItemView = false
     @State var searchText: String = ""
     
     var body: some View {
         NavigationSplitView {
             List {
-                ForEach(searchItems(text: searchText)) { item in
+                ForEach(filteredItems) { item in
                     NavigationLink {
                         ItemDetailView(item: item)
                     } label: {
@@ -26,7 +27,7 @@ struct ItemListView: View {
                 }
                 .onDelete(perform: deleteItems)
                 
-                if searchItems(text: searchText).isEmpty {
+                if filteredItems.isEmpty {
                     HStack {
                         Text("No items found")
                     }
@@ -44,13 +45,15 @@ struct ItemListView: View {
                     }
                 }
             }
-            } detail: {
-                Text("Select an item")
-            }
-            .sheet(isPresented: $showingAddItemView) {
-                AddItemView()
-            }
-            .searchable(text: $searchText, prompt: Text("Search a Task"))
+        } detail: {
+            Text("Select an item")
+        }
+        .sheet(isPresented: $showingAddItemView) {
+            AddItemView()
+        }
+        .searchable(text: $searchText, prompt: Text("Search a Task"))
+        .onAppear { self.filteredItems = searchItems(text: searchText) }
+        .onChange(of: searchText) { self.filteredItems = searchItems(text: $1) }
     }
 
     private func deleteItems(offsets: IndexSet) {
