@@ -17,7 +17,7 @@ final class Item {
     var itemDescription: String
     var timestamp: Date
     var status: TaskStatus
-
+    var statusOrder: Int
     // MARK: - Initializers
 
     init(id: UUID, title: String, itemDescription: String, timestamp: Date, status: TaskStatus) {
@@ -26,6 +26,7 @@ final class Item {
         self.itemDescription = itemDescription
         self.timestamp = timestamp
         self.status = status
+        self.statusOrder = status.sortOrder
     }
 
     /// Convenience initializer to map from the business model `ToDoItem`.
@@ -47,6 +48,16 @@ enum TaskStatus: String, Codable, CaseIterable {
     case todo = "TODO"
     case inProgress = "ONGOING"
     case done = "DONE"
+}
+
+extension TaskStatus {
+    var sortOrder: Int {
+        switch self {
+            case .todo: return 0
+            case .inProgress: return 1
+            case .done: return 2
+        }
+    }
 }
 
 /// Represents a single task item.

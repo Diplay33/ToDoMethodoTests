@@ -62,14 +62,35 @@ final class SwiftDataToDoRepository: TaskRepositoryProtocol {
         return PaginatedResult(items: taskItems, metadata: metadata)
     }
 
-    func listTasks(searchTerm: String?, page: Int, pageSize: Int) throws -> PaginatedResult<TaskItem> {
-        var descriptor = FetchDescriptor<Item>()
+    func listTasks(sortBy: TaskSortOption,filterByStatus: TaskStatus?, searchTerm: String?, page: Int, pageSize: Int) throws -> PaginatedResult<TaskItem> {
 
-        if let searchTerm = searchTerm, !searchTerm.isEmpty {
-            descriptor.predicate = #Predicate {
-                $0.title.localizedStandardContains(searchTerm) ||
-                $0.itemDescription.localizedStandardContains(searchTerm)
+        let finalPredicate: Predicate<Item>?
+
+        if let status = filterByStatus, let term = searchTerm, !term.isEmpty {
+            finalPredicate = #Predicate<Item> {
+                $0.status == status &&
+                ($0.title.localizedStandardContains(term) || $0.itemDescription.localizedStandardContains(term))
             }
+        } else if let status = filterByStatus {
+            finalPredicate = #Predicate<Item> { $0.status == status }
+        } else if let term = searchTerm, !term.isEmpty {
+            finalPredicate = #Predicate<Item> {
+                $0.title.localizedStandardContains(term) ||
+                $0.itemDescription.localizedStandardContains(term)
+            }
+        } else {
+            finalPredicate = nil
+        }
+
+        var descriptor = FetchDescriptor<Item>(predicate: finalPredicate)
+
+        switch sortBy {
+            case .byCreationDate(let order):
+                descriptor.sortBy = [SortDescriptor(\.timestamp, order: order == .ascending ? .forward : .reverse)]
+            case .byTitle(let order):
+                descriptor.sortBy = [SortDescriptor(\.title, order: order == .ascending ? .forward : .reverse)]
+            case .byStatus:
+                descriptor.sortBy = [SortDescriptor(\.statusOrder, order: .forward)]
         }
 
         let totalItems = try context.fetchCount(descriptor)
@@ -80,6 +101,7 @@ final class SwiftDataToDoRepository: TaskRepositoryProtocol {
         descriptor.fetchOffset = (page - 1) * pageSize
 
         let items = try context.fetch(descriptor)
+
         let taskItems = items.map { TaskItem(from: $0) }
 
         return PaginatedResult(items: taskItems, metadata: metadata)

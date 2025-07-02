@@ -16,4 +16,5 @@ enum TaskError: Error, Equatable, Sendable {
     case taskNotFound(id: UUID)
     case invalidStatus
     case invalidPageParameters
+    case invalidSortCriteria
 }
