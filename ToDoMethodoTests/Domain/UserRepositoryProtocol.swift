@@ -13,4 +13,5 @@ protocol UserRepositoryProtocol {
 
     /// Trouve un utilisateur par son email. Retourne nil s'il n'est pas trouvé.
     func findUser(byEmail email: String) throws -> User?
+    func listUsers(sortBy: UserSortOption, page: Int, pageSize: Int) throws -> PaginatedResult<User>
 }

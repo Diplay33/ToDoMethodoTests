@@ -26,4 +26,16 @@ final class UserService {
 
         return newUser
     }
+
+    func listUsers(
+        sortBy: UserSortOption = .byName(order: .ascending),
+        page: Int = 1,
+        pageSize: Int = 20
+    ) throws -> PaginatedResult<User> {
+        guard page > 0, pageSize > 0 else {
+            throw TaskError.invalidPageParameters
+        }
+
+        return try repository.listUsers(sortBy: sortBy, page: page, pageSize: pageSize)
+    }
 }

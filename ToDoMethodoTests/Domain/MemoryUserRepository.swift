@@ -21,4 +21,33 @@ final class MemoryUserRepository: UserRepositoryProtocol {
     func clear() {
         users = [:]
     }
+
+    func listUsers(sortBy: UserSortOption, page: Int, pageSize: Int) throws -> PaginatedResult<User> {
+        var allUsers = Array(users.values)
+
+        switch sortBy {
+            case .byName(let order):
+                allUsers.sort {
+                    let comparisonResult = $0.name.localizedStandardCompare($1.name)
+                    if order == .ascending {
+                        return comparisonResult == .orderedAscending
+                    } else {
+                        return comparisonResult == .orderedDescending
+                    }
+                }
+        }
+
+        let totalItems = allUsers.count
+        let metadata = PaginationMetadata(currentPage: page, pageSize: pageSize, totalItems: totalItems)
+
+        guard page > 0, page <= metadata.totalPages || totalItems == 0 else {
+            return PaginatedResult(items: [], metadata: metadata)
+        }
+
+        let startIndex = (page - 1) * pageSize
+        let endIndex = min(startIndex + pageSize, totalItems)
+        let pageItems = Array(allUsers[startIndex..<endIndex])
+
+        return PaginatedResult(items: pageItems, metadata: metadata)
+    }
 }
