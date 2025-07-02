@@ -18,14 +18,28 @@ struct ItemListView: View {
     var body: some View {
         NavigationSplitView {
             List {
-                ForEach(filteredItems) { item in
-                    NavigationLink {
-                        ItemDetailView(item: item)
-                    } label: {
-                        Text(item.title)
+                if searchText.isEmpty {
+                    ForEach(filteredItems) { item in
+                        NavigationLink {
+                            ItemDetailView(item: item)
+                        } label: {
+                            Text(item.title)
+                        }
+                    }
+                    .onDelete(perform: deleteItems)
+                }
+                else {
+                    Section(header: Text("Résultats pour \"\(searchText)\"")) {
+                        ForEach(filteredItems) { item in
+                            NavigationLink {
+                                ItemDetailView(item: item)
+                            } label: {
+                                Text(item.title)
+                            }
+                        }
+                        .onDelete(perform: deleteItems)
                     }
                 }
-                .onDelete(perform: deleteItems)
                 
                 if filteredItems.isEmpty {
                     HStack {
