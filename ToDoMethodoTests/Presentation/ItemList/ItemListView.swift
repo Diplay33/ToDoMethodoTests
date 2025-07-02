@@ -66,8 +66,9 @@ struct ItemListView: View {
             AddItemView()
         }
         .searchable(text: $searchText, prompt: Text("Search a Task"))
-        .onAppear { self.filteredItems = searchItems(text: searchText) }
-        .onChange(of: searchText) { self.filteredItems = searchItems(text: $1) }
+        .onAppear { self.filteredItems = searchItems() }
+        .onChange(of: searchText) { self.filteredItems = searchItems() }
+        .onChange(of: items) { self.filteredItems = searchItems() }
     }
 
     private func deleteItems(offsets: IndexSet) {
@@ -78,7 +79,7 @@ struct ItemListView: View {
         }
     }
     
-    private func searchItems(text: String) -> [Item] {
+    private func searchItems() -> [Item] {
         searchText.isEmpty ? items : items.filter { $0.title.contains(searchText) }
     }
 }
