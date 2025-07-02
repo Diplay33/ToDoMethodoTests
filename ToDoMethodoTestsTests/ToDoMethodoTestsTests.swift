@@ -462,6 +462,63 @@ struct TaskTests {
                 #expect(result.metadata.totalPages == 0, "Le nombre total de pages doit être 0")
         }
     }
+
+    @MainActor
+    struct TaskSearchTests {
+        let repository: MemoryRepository
+        let service: TaskService
+
+        init() {
+            (repository, service) = MemoryTestEnvironmentFactory.create()
+
+            // GIVEN un jeu de données de test créé une seule fois pour tous les tests de cette suite
+            let _ = try! service.createTask(title: "Projet Apple", description: "Développer une nouvelle app")
+            let _ = try! service.createTask(title: "Faire les courses", description: "Acheter des pommes")
+            let _ = try! service.createTask(title: "Réunion importante", description: "Discuter du projet Alpha")
+            let _ = try! service.createTask(title: "Sport", description: "Ne pas oublier la pomme post-entraînement")
+        }
+
+        @Test("Rechercher un terme dans le titre ou la description")
+        func test_search_byKeyword_returnsMatchingTasks() throws {
+            // WHEN je recherche "Projet" (qui est dans un titre et une description)
+            let result = try service.listTasks(searchTerm: "Projet")
+            // THEN j'obtiens les 2 tâches correspondantes
+            #expect(result.items.count == 2)
+        }
+
+        @Test("La recherche est insensible à la casse")
+        func test_search_isCaseInsensitive() throws {
+            // WHEN je recherche "alpha" en minuscule
+            let result = try service.listTasks(searchTerm: "alpha")
+            // THEN la tâche contenant "Alpha" est bien trouvée
+            #expect(result.items.count == 1)
+            #expect(result.items.first?.title == "Réunion importante")
+        }
+
+        @Test("La recherche sur un terme inexistant retourne une liste vide")
+        func test_search_withNonExistentTerm_returnsEmpty() throws {
+            let result = try service.listTasks(searchTerm: "banane")
+            #expect(result.items.isEmpty)
+        }
+
+        @Test("La recherche avec une chaîne vide retourne toutes les tâches")
+        func test_search_withEmptyTerm_returnsAllTasks() throws {
+            let result = try service.listTasks(searchTerm: "")
+            #expect(result.items.count == 4)
+        }
+
+        @Test("Les résultats de recherche sont bien paginés")
+        func test_search_resultsArePaginated() throws {
+            // GIVEN nos 4 tâches de base, dont 3 contiennent "p" (Projet, app, pommes, importante, Sport, post)
+            let result = try service.listTasks(searchTerm: "p", pageSize: 2)
+
+            // THEN j'obtiens 2 tâches et les bonnes informations de pagination
+            #expect(result.items.count == 2, "La page doit contenir 2 éléments")
+            #expect(result.metadata.totalItems == 4, "Il y a 4 résultats au total")
+            #expect(result.metadata.totalPages == 2, "4 items / 2 par page = 2 pages")
+            #expect(result.metadata.currentPage == 1)
+        }
+    }
     // MARK: - Integration Tests for SwiftData Repository
 
     @MainActor

@@ -12,4 +12,5 @@ protocol TaskRepositoryProtocol {
     func saveTask(_ task: TaskItem) throws
     func deleteTask(byId id: UUID) throws
     func listTasks(page: Int, pageSize: Int) throws -> PaginatedResult<TaskItem>
+    func listTasks(searchTerm: String?, page: Int, pageSize: Int) throws -> PaginatedResult<TaskItem>
 }

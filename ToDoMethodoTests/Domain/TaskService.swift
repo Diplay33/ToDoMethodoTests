@@ -75,4 +75,13 @@ final class TaskService {
         return try repository.listTasks(page: page, pageSize: pageSize)
     }
 
+    func listTasks(searchTerm: String? = nil, page: Int = 1, pageSize: Int = 20) throws -> PaginatedResult<TaskItem> {
+        guard page > 0, pageSize > 0 else {
+            throw TaskError.invalidPageParameters
+        }
+
+        let trimmedSearchTerm = searchTerm?.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        return try repository.listTasks(searchTerm: trimmedSearchTerm, page: page, pageSize: pageSize)
+    }
 }

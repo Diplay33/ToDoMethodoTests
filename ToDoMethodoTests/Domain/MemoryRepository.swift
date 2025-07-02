@@ -63,4 +63,26 @@ final class MemoryRepository: TaskRepositoryProtocol {
 
         return PaginatedResult(items: pageItems, metadata: metadata)
     }
+
+    func listTasks(searchTerm: String?, page: Int, pageSize: Int) throws -> PaginatedResult<TaskItem> {
+        var allTasks = Array(tasks.values)
+
+        if let searchTerm = searchTerm, !searchTerm.isEmpty {
+            allTasks = allTasks.filter { task in
+                task.title.localizedCaseInsensitiveContains(searchTerm) ||
+                task.description.localizedCaseInsensitiveContains(searchTerm)
+            }
+        }
+
+        allTasks.sort { $0.createdAt > $1.createdAt }
+        let totalItems = allTasks.count
+        let metadata = PaginationMetadata(currentPage: page, pageSize: pageSize, totalItems: totalItems)
+
+        let startIndex = (page - 1) * pageSize
+        let endIndex = min(startIndex + pageSize, totalItems)
+
+        let pageItems = Array(allTasks[startIndex..<endIndex])
+
+        return PaginatedResult(items: pageItems, metadata: metadata)
+    }
 }

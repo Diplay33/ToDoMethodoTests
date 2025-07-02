@@ -61,4 +61,27 @@ final class SwiftDataToDoRepository: TaskRepositoryProtocol {
 
         return PaginatedResult(items: taskItems, metadata: metadata)
     }
+
+    func listTasks(searchTerm: String?, page: Int, pageSize: Int) throws -> PaginatedResult<TaskItem> {
+        var descriptor = FetchDescriptor<Item>()
+
+        if let searchTerm = searchTerm, !searchTerm.isEmpty {
+            descriptor.predicate = #Predicate {
+                $0.title.localizedStandardContains(searchTerm) ||
+                $0.itemDescription.localizedStandardContains(searchTerm)
+            }
+        }
+
+        let totalItems = try context.fetchCount(descriptor)
+        let metadata = PaginationMetadata(currentPage: page, pageSize: pageSize, totalItems: totalItems)
+
+        descriptor.sortBy = [SortDescriptor(\.timestamp, order: .reverse)]
+        descriptor.fetchLimit = pageSize
+        descriptor.fetchOffset = (page - 1) * pageSize
+
+        let items = try context.fetch(descriptor)
+        let taskItems = items.map { TaskItem(from: $0) }
+
+        return PaginatedResult(items: taskItems, metadata: metadata)
+    }
 }
