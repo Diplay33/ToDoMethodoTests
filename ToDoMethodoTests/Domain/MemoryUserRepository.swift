@@ -8,13 +8,13 @@
 import Foundation
 
 final class MemoryUserRepository: UserRepositoryProtocol {
-    private var users: [String: User] = [:]
+    private var users: [String: UserItem] = [:]
 
-    func saveUser(_ user: User) throws {
+    func saveUser(_ user: UserItem) throws {
         users[user.email] = user
     }
 
-    func findUser(byEmail email: String) throws -> User? {
+    func findUser(byEmail email: String) throws -> UserItem? {
         return users[email]
     }
 
@@ -22,7 +22,7 @@ final class MemoryUserRepository: UserRepositoryProtocol {
         users = [:]
     }
 
-    func listUsers(sortBy: UserSortOption, page: Int, pageSize: Int) throws -> PaginatedResult<User> {
+    func listUsers(sortBy: UserSortOption, page: Int, pageSize: Int) throws -> PaginatedResult<UserItem> {
         var allUsers = Array(users.values)
 
         switch sortBy {

@@ -19,6 +19,24 @@ struct UserMemoryTestEnvironmentFactory {
     }
 }
 
+// MARK: - SwiftData Test Environment for User
+@MainActor
+struct UserSwiftDataTestEnvironmentFactory {
+    static func create() -> (container: ModelContainer, repository: SwiftDataUserRepository) {
+        do {
+            // The schema now needs to know about the @Model User class.
+            let schema = Schema([User.self])
+            let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
+            let container = try ModelContainer(for: schema, configurations: [configuration])
+            let repository = SwiftDataUserRepository(context: container.mainContext)
+            return (container, repository)
+        } catch {
+            fatalError("Failed to set up in-memory SwiftData container for Users: \(error)")
+        }
+    }
+}
+
+
 struct UserTests {
 
     @MainActor
@@ -141,21 +159,6 @@ struct UserTests {
             #expect(result.items.first?.name == "User 11")
         }
 
-        @Test("Demander une page d'utilisateurs au-delà des limites retourne une liste vide")
-        func test_listUsers_withOutOfBoundsPage_returnsEmptyList() throws {
-            // GIVEN
-            _ = try service.createUser(name: "Charlie", email: "c@test.com")
-
-            // WHEN
-            let result = try service.listUsers(page: 2, pageSize: 10)
-
-            // THEN
-            #expect(result.items.isEmpty)
-            #expect(result.metadata.totalItems == 1)
-            #expect(result.metadata.totalPages == 1)
-            #expect(result.metadata.currentPage == 2)
-        }
-
         @Test("Lister les utilisateurs quand il n'y en a aucun")
         func test_listUsers_whenEmpty_returnsEmptyResult() throws {
             // GIVEN un repository vide (assuré par le init)
@@ -177,6 +180,98 @@ struct UserTests {
             #expect(throws: TaskError.invalidPageParameters) {
                 _ = try service.listUsers(pageSize: -5)
             }
+        }
+
+        @Test("Demander une page d'utilisateurs au-delà des limites retourne une liste vide")
+        func test_listUsers_withOutOfBoundsPage_returnsEmptyList() throws {
+            // GIVEN
+            _ = try service.createUser(name: "Charlie", email: "c@test.com")
+
+            // WHEN
+            let result = try service.listUsers(page: 2, pageSize: 10)
+
+            // THEN
+            #expect(result.items.isEmpty)
+            #expect(result.metadata.totalItems == 1)
+            #expect(result.metadata.totalPages == 1)
+            #expect(result.metadata.currentPage == 2)
+        }
+    }
+
+    // MARK: - Integration Tests for SwiftData User Repository
+
+    @MainActor
+    struct SwiftDataUserRepositoryTests {
+        let container: ModelContainer
+        let repository: SwiftDataUserRepository
+
+        init() {
+            (container, repository) = UserSwiftDataTestEnvironmentFactory.create()
+        }
+
+        @Test("Save a new user and retrieve it successfully by email")
+        func test_saveAndRetrieveUserByEmail() throws {
+            let newUser = try UserItem(name: "John Swift", email: "john.swift@apple.com")
+            try repository.saveUser(newUser)
+
+            let retrievedUser = try repository.findUser(byEmail: "john.swift@apple.com")
+
+            #expect(retrievedUser != nil)
+            #expect(retrievedUser?.id == newUser.id)
+            #expect(retrievedUser?.name == "John Swift")
+        }
+
+        @Test("Finding a non-existent user returns nil")
+        func test_findNonExistentUser_returnsNil() throws {
+            let retrievedUser = try repository.findUser(byEmail: "nobody@here.com")
+            #expect(retrievedUser == nil)
+        }
+
+        @Test("Saving a user with an existing ID updates it")
+        func test_saveExistingUser_updatesIt() throws {
+            let originalUser = try UserItem(name: "Jane Doe", email: "jane@doe.com")
+            try repository.saveUser(originalUser)
+
+            let modifiedUser = try UserItem(id: originalUser.id, name: "Jane Smith", email: "jane@smith.com", createdAt: originalUser.createdAt)
+            try repository.saveUser(modifiedUser)
+
+            let retrievedUser = try repository.findUser(byEmail: "jane@smith.com")
+            #expect(retrievedUser != nil)
+            #expect(retrievedUser?.name == "Jane Smith")
+
+            let count = try container.mainContext.fetchCount(FetchDescriptor<User>())
+            #expect(count == 1)
+        }
+
+        @Test("List users returns paginated and sorted results")
+        func test_listUsers_returnsPaginatedAndSorted() throws {
+            // GIVEN several users
+            try repository.saveUser(try UserItem(name: "Charlie", email: "c@test.com"))
+            try repository.saveUser(try UserItem(name: "Alice", email: "a@test.com"))
+            try repository.saveUser(try UserItem(name: "Bob", email: "b@test.com"))
+            try repository.saveUser(try UserItem(name: "David", email: "d@test.com"))
+
+            // WHEN fetching the first page, sorted descending
+            let result = try repository.listUsers(sortBy: .byName(order: .descending), page: 1, pageSize: 3)
+
+            // THEN the results are correct
+            #expect(result.items.count == 3)
+            #expect(result.metadata.totalItems == 4)
+            #expect(result.metadata.totalPages == 2)
+            #expect(result.items.first?.name == "David")
+            #expect(result.items.last?.name == "Bob")
+        }
+
+        @Test("List users with no users returns empty result")
+        func test_listUsers_whenEmpty_returnsEmptyResult() throws {
+            // GIVEN an empty repository (from init)
+
+            // WHEN listing users
+            let result = try repository.listUsers(sortBy: .byName(order: .ascending), page: 1, pageSize: 10)
+
+            // THEN the result is empty
+            #expect(result.items.isEmpty)
+            #expect(result.metadata.totalItems == 0)
         }
     }
 }

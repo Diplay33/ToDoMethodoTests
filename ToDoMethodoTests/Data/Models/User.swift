@@ -2,28 +2,41 @@
 //  User.swift
 //  ToDoMethodoTests
 //
-//  Created by KILLIAN ADONAI on 02/07/2025.
+//  Created by KILLIAN ADONAI on 03/07/2025.
 //
 
 import Foundation
+import SwiftData
 
-struct User: Equatable, Identifiable {
-    let id: UUID
-    let name: String
-    let email: String
-    let createdAt: Date
+@Model
+final class User {
+    // MARK: - Exposed Properties
 
-    /// Initialiseur qui valide les champs de l'utilisateur.
-    init(id: UUID = UUID(), name: String, email: String, createdAt: Date = Date()) throws {
-        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmedName.isEmpty else { throw UserError.nameRequired }
-        guard trimmedName.count <= 50 else { throw UserError.nameTooLong(count: trimmedName.count) }
+    @Attribute(.unique) var id: UUID
+    var name: String
+    @Attribute(.unique) var email: String
+    var createdAt: Date
 
-        guard email.contains("@") && email.contains(".") else { throw UserError.invalidEmailFormat }
+    // MARK: - Initializers
 
+    init(id: UUID, name: String, email: String, createdAt: Date) {
         self.id = id
-        self.name = trimmedName
+        self.name = name
         self.email = email
         self.createdAt = createdAt
+    }
+}
+
+// MARK: - Helpers
+
+extension User {
+    /// Convenience initializer to map from the business model `UserItem`.
+    convenience init(from domainModel: UserItem) {
+        self.init(
+            id: domainModel.id,
+            name: domainModel.name,
+            email: domainModel.email,
+            createdAt: domainModel.createdAt
+        )
     }
 }

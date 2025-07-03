@@ -15,12 +15,12 @@ final class UserService {
     }
 
     /// Crée un nouvel utilisateur après avoir validé l'unicité de l'email et la syntaxe des champs.
-    func createUser(name: String, email: String) throws -> User {
+    func createUser(name: String, email: String) throws -> UserItem {
         if try repository.findUser(byEmail: email) != nil {
             throw UserError.emailAlreadyInUse
         }
 
-        let newUser = try User(name: name, email: email)
+        let newUser = try UserItem(name: name, email: email)
 
         try repository.saveUser(newUser)
 
@@ -31,7 +31,7 @@ final class UserService {
         sortBy: UserSortOption = .byName(order: .ascending),
         page: Int = 1,
         pageSize: Int = 20
-    ) throws -> PaginatedResult<User> {
+    ) throws -> PaginatedResult<UserItem> {
         guard page > 0, pageSize > 0 else {
             throw TaskError.invalidPageParameters
         }

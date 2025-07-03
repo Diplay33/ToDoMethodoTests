@@ -9,9 +9,11 @@ import Foundation
 
 protocol UserRepositoryProtocol {
     /// Sauvegarde un utilisateur (création ou mise à jour).
-    func saveUser(_ user: User) throws
+    func saveUser(_ user: UserItem) throws
 
     /// Trouve un utilisateur par son email. Retourne nil s'il n'est pas trouvé.
-    func findUser(byEmail email: String) throws -> User?
-    func listUsers(sortBy: UserSortOption, page: Int, pageSize: Int) throws -> PaginatedResult<User>
+    func findUser(byEmail email: String) throws -> UserItem?
+
+    /// Liste les utilisateurs avec tri et pagination.
+    func listUsers(sortBy: UserSortOption, page: Int, pageSize: Int) throws -> PaginatedResult<UserItem>
 }
