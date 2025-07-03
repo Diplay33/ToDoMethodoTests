@@ -9,13 +9,12 @@ import SwiftUI
 import SwiftData
 
 struct AddItemView: View {
-    // MARK: - Private Properties
-
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
-
     @State private var title: String = ""
     @State private var itemDescription: String = ""
+    @State private var dueDate: Date?
+    @State var showDatePicker: Bool = false
 
     private var isFormValid: Bool {
         let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -34,6 +33,28 @@ struct AddItemView: View {
                 Section("Description (optional)") {
                     TextEditor(text: $itemDescription)
                         .frame(minHeight: 150)
+                }
+                
+                Section("Due Date") {
+                    HStack {
+                        if let dueDate {
+                            Text(dueDate, format: Date.FormatStyle(date: .long, time: .standard))
+                        }
+                        else {
+                            Text("No due date set")
+                        }
+                        
+                        Spacer()
+                        
+                        Button(action: { withAnimation { showDatePicker.toggle() } }) {
+                            Text(showDatePicker ? "Done" : "Edit")
+                        }
+                    }
+                    
+                    if showDatePicker {
+                        DatePicker("", selection: Binding(get: { dueDate ?? .now }, set: { dueDate = $0 }))
+                            .datePickerStyle(.graphical)
+                    }
                 }
             }
             .navigationTitle("New Item")
@@ -59,7 +80,7 @@ struct AddItemView: View {
 
     private func addItem() {
         withAnimation {
-            let newItem = Item(id: UUID(), title: title.trimmingCharacters(in: .whitespacesAndNewlines), itemDescription: itemDescription, timestamp: Date(), dueDate: Date().addingTimeInterval(86400*7), status: .todo, priority: .normal)
+            let newItem = Item(id: UUID(), title: title.trimmingCharacters(in: .whitespacesAndNewlines), itemDescription: itemDescription, timestamp: Date(), dueDate: dueDate, status: .todo, priority: .normal)
             modelContext.insert(newItem)
         }
     }
