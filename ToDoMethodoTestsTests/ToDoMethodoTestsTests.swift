@@ -887,4 +887,97 @@ struct TaskTests {
             #expect(emptyResult.metadata.totalItems == 0)
         }
     }
+
+    @MainActor
+    struct TaskDueDateTests {
+        let repository: MemoryRepository
+        let service: TaskService
+
+        init() {
+            (repository, service) = MemoryTestEnvironmentFactory.create()
+        }
+
+        @Test("Définir une date d'échéance future valide")
+        func test_setValidFutureDueDate() throws {
+            // GIVEN j'ai une tâche existante
+            let task = try service.createTask(title: "Planifier le futur")
+            let futureDate = Date().addingTimeInterval(86400)
+
+            // WHEN je définis une date d'échéance future valide
+            let updatedTask = try service.setTaskDueDate(byIdString: task.id.uuidString, newDueDate: futureDate)
+
+            // THEN la date est enregistrée et visible dans les détails
+            #expect(updatedTask.dueDate == futureDate)
+            let persistedTask = try service.findTask(byIdString: task.id.uuidString)
+            #expect(persistedTask.dueDate == futureDate)
+        }
+
+        @Test("Modifier une date d'échéance existante")
+        func test_modifyExistingDueDate() throws {
+            // GIVEN j'ai une tâche avec une échéance
+            var task = try service.createTask(title: "Changer d'avis")
+            let oldDate = Date().addingTimeInterval(86400)
+            task = try service.setTaskDueDate(byIdString: task.id.uuidString, newDueDate: oldDate)
+            #expect(task.dueDate == oldDate)
+
+            let newDate = Date().addingTimeInterval(172800)
+
+            // WHEN je modifie la date d'échéance
+            let updatedTask = try service.setTaskDueDate(byIdString: task.id.uuidString, newDueDate: newDate)
+
+            // THEN la nouvelle date remplace l'ancienne
+            #expect(updatedTask.dueDate == newDate)
+        }
+
+        @Test("Supprimer une date d'échéance")
+        func test_removeDueDate() throws {
+            // GIVEN j'ai une tâche avec une échéance
+            var task = try service.createTask(title: "Plus de pression")
+            let dueDate = Date()
+            task = try service.setTaskDueDate(byIdString: task.id.uuidString, newDueDate: dueDate)
+            #expect(task.dueDate != nil)
+
+            // WHEN je supprime la date d'échéance (la définir à null)
+            let updatedTask = try service.setTaskDueDate(byIdString: task.id.uuidString, newDueDate: nil)
+
+            // THEN la tâche n'a plus d'échéance
+            #expect(updatedTask.dueDate == nil)
+        }
+
+        @Test("Définir une date d'échéance dans le passé")
+        func test_setPastDueDate() throws {
+            // GIVEN j'ai une tâche existante
+            let task = try service.createTask(title: "Voyage dans le temps")
+            let pastDate = Date().addingTimeInterval(-86400)
+
+            // WHEN je tente de définir une date d'échéance dans le passé
+            // THEN un avertissement est généré (implicite) mais la date est acceptée
+            let updatedTask = try service.setTaskDueDate(byIdString: task.id.uuidString, newDueDate: pastDate)
+            #expect(updatedTask.dueDate == pastDate)
+        }
+
+        @Test("Tenter de définir une échéance sur une tâche inexistante")
+        func test_setDueDateOnNonexistentTask() throws {
+            // GIVEN un ID invalide
+            let invalidID = UUID()
+
+            // WHEN j'utilise cet ID pour définir une échéance
+            // THEN j'obtiens une erreur "Task not found"
+            #expect(throws: TaskError.taskNotFound(id: invalidID)) {
+                try service.setTaskDueDate(byIdString: invalidID.uuidString, newDueDate: Date())
+            }
+        }
+
+        @Test("Tenter de définir une échéance avec un ID mal formaté")
+        func test_setDueDate_withInvalidIDFormat_throwsError() throws {
+            // GIVEN un ID mal formaté
+            let invalidIDString = "ceci-n-est-pas-un-uuid"
+
+            // WHEN je tente de définir une échéance avec cet ID
+            // THEN j'obtiens une erreur 'invalidIDFormat'
+            #expect(throws: TaskError.invalidIDFormat) {
+                try service.setTaskDueDate(byIdString: invalidIDString, newDueDate: Date())
+            }
+        }
+    }
 }

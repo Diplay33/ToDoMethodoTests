@@ -16,15 +16,17 @@ final class Item {
     var title: String
     var itemDescription: String
     var timestamp: Date
+    var dueDate: Date?
     var status: TaskStatus
     var statusOrder: Int
     // MARK: - Initializers
 
-    init(id: UUID, title: String, itemDescription: String, timestamp: Date, status: TaskStatus) {
+    init(id: UUID, title: String, itemDescription: String, timestamp: Date, dueDate: Date?, status: TaskStatus) {
         self.id = id
         self.title = title
         self.itemDescription = itemDescription
         self.timestamp = timestamp
+        self.dueDate = dueDate
         self.status = status
         self.statusOrder = status.sortOrder
     }
@@ -36,6 +38,7 @@ final class Item {
             title: domainModel.title,
             itemDescription: domainModel.description,
             timestamp: domainModel.createdAt,
+            dueDate: domainModel.dueDate,
             status: domainModel.status
         )
     }
@@ -67,10 +70,11 @@ struct TaskItem: Equatable {
     var title: String
     var description: String
     var createdAt: Date
+    var dueDate: Date?
     var status: TaskStatus
 
     /// Initializer for creating a NEW task with validation.
-    init(title: String, description: String = "", creationDate: Date = Date()) throws {
+    init(title: String, description: String = "", creationDate: Date = Date(), dueDate: Date? = nil) throws {
         let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedTitle.isEmpty else { throw TaskError.titleRequired }
         guard trimmedTitle.count <= 100 else { throw TaskError.titleTooLong(count: trimmedTitle.count) }
@@ -80,6 +84,7 @@ struct TaskItem: Equatable {
         self.title = trimmedTitle
         self.description = description
         self.createdAt = creationDate
+        self.dueDate = dueDate
         self.status = .todo
     }
 
@@ -89,6 +94,7 @@ struct TaskItem: Equatable {
         self.title = persistenceModel.title
         self.description = persistenceModel.itemDescription
         self.createdAt = persistenceModel.timestamp
+        self.dueDate = persistenceModel.dueDate
         self.status = persistenceModel.status
     }
 
@@ -108,6 +114,12 @@ struct TaskItem: Equatable {
     func updatingStatus(to newStatus: TaskStatus) -> TaskItem {
         var updatedTask = self
         updatedTask.status = newStatus
+        return updatedTask
+    }
+
+    func updatingDueDate(to newDueDate: Date?) throws -> TaskItem {
+        var updatedTask = self
+        updatedTask.dueDate = newDueDate
         return updatedTask
     }
 }

@@ -17,4 +17,5 @@ enum TaskError: Error, Equatable, Sendable {
     case invalidStatus
     case invalidPageParameters
     case invalidSortCriteria
+    case invalidDateFormat
 }

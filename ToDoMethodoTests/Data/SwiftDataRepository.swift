@@ -42,6 +42,7 @@ final class SwiftDataToDoRepository: TaskRepositoryProtocol {
             existingItem.title = task.title
             existingItem.itemDescription = task.description
             existingItem.timestamp = task.createdAt
+            existingItem.dueDate = task.dueDate
             existingItem.status = task.status
             existingItem.statusOrder = task.status.sortOrder
         } else {
@@ -103,14 +104,12 @@ final class SwiftDataToDoRepository: TaskRepositoryProtocol {
 
         var descriptor = FetchDescriptor<Item>(predicate: finalPredicate)
 
-        // Apply the correct sorting based on the `sortBy` parameter.
         switch sortBy {
             case .byCreationDate(let order):
                 descriptor.sortBy = [SortDescriptor(\.timestamp, order: order == .ascending ? .forward : .reverse)]
             case .byTitle(let order):
                 descriptor.sortBy = [SortDescriptor(\.title, order: order == .ascending ? .forward : .reverse)]
             case .byStatus:
-                // Sort by status order first, then by date as a secondary criterion.
                 descriptor.sortBy = [SortDescriptor(\.statusOrder, order: .forward), SortDescriptor(\.timestamp, order: .reverse)]
         }
 

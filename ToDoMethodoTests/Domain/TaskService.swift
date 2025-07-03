@@ -68,6 +68,16 @@ final class TaskService {
         try repository.deleteTask(byId: uuid)
     }
 
+    func setTaskDueDate(byIdString idString: String, newDueDate: Date?) throws -> TaskItem {
+        guard let uuid = UUID(uuidString: idString) else {
+            throw TaskError.invalidIDFormat
+        }
+        let originalTask = try repository.getTask(byId: uuid)
+        let updatedTask = try originalTask.updatingDueDate(to: newDueDate)
+        try repository.saveTask(updatedTask)
+        return updatedTask
+    }
+
     func listTasks(page: Int = 1, pageSize: Int = 20) throws -> PaginatedResult<TaskItem> {
         guard page > 0, pageSize > 0 else {
             throw TaskError.invalidPageParameters

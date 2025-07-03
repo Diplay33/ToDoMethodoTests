@@ -65,5 +65,5 @@ struct ItemDetailView: View {
 }
 
 #Preview {
-    ItemDetailView(item: Item(id: UUID(), title: "", itemDescription: "", timestamp: Date(), status: .done))
+    ItemDetailView(item: Item(id: UUID(), title: "", itemDescription: "", timestamp: Date(), dueDate: .now, status: .done))
 }
