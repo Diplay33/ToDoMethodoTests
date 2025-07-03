@@ -5,7 +5,7 @@
 //  Created by Jacques HU on 30/06/2025.
 //
 
-import Foundation
+import SwiftUI
 import SwiftData
 
 @Model
@@ -64,6 +64,15 @@ enum TaskPriority: String, Codable, CaseIterable {
     case normal = "NORMAL"
     case high = "HIGH"
     case critical = "CRITICAL"
+    
+    func getColor() -> Color {
+        switch self {
+        case .critical: .red
+        case .high: .orange
+        case .normal: .yellow
+        case .low: .gray
+        }
+    }
 }
 
 extension TaskPriority {

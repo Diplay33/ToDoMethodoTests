@@ -82,7 +82,7 @@ struct ItemDetailView: View {
                     VStack(alignment: .leading) {
                         HStack {
                             Circle()
-                                .foregroundStyle(computePriorityColor(item.priority))
+                                .foregroundStyle(item.priority.getColor())
                                 .frame(height: 16)
                             
                             Text(item.priority.rawValue)
@@ -101,15 +101,6 @@ struct ItemDetailView: View {
             case .done: .green
             case .inProgress: .orange
             case .todo: .blue
-        }
-    }
-    
-    private func computePriorityColor(_ priority: TaskPriority) -> Color {
-        switch priority {
-        case .critical: .red
-        case .high: .orange
-        case .normal: .yellow
-        case .low: .gray
         }
     }
 }
