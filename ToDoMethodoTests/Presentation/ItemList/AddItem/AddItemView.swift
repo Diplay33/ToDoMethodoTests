@@ -14,6 +14,7 @@ struct AddItemView: View {
     @State private var title: String = ""
     @State private var itemDescription: String = ""
     @State private var dueDate: Date?
+    @State private var priorityLevel: TaskPriority = .normal
     @State var showDatePicker: Bool = false
 
     private var isFormValid: Bool {
@@ -56,6 +57,26 @@ struct AddItemView: View {
                             .datePickerStyle(.graphical)
                     }
                 }
+                
+                Section("Priority Level") {
+                    Menu {
+                        ForEach(TaskPriority.allCases, id: \.self) { level in
+                            Toggle(level.rawValue, isOn: Binding(get: { priorityLevel == level } , set: { _ in priorityLevel = level }))
+                        }
+                    }
+                    label: {
+                        VStack(alignment: .leading) {
+                            HStack {
+                                Circle()
+                                    .foregroundStyle(priorityLevel.getColor())
+                                    .frame(height: 16)
+                                
+                                Text(priorityLevel.rawValue)
+                            }
+                        }
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                }
             }
             .navigationTitle("New Item")
             .navigationBarTitleDisplayMode(.inline)
@@ -80,7 +101,7 @@ struct AddItemView: View {
 
     private func addItem() {
         withAnimation {
-            let newItem = Item(id: UUID(), title: title.trimmingCharacters(in: .whitespacesAndNewlines), itemDescription: itemDescription, timestamp: Date(), dueDate: dueDate, status: .todo, priority: .normal)
+            let newItem = Item(id: UUID(), title: title.trimmingCharacters(in: .whitespacesAndNewlines), itemDescription: itemDescription, timestamp: Date(), dueDate: dueDate, status: .todo, priority: priorityLevel)
             modelContext.insert(newItem)
         }
     }
