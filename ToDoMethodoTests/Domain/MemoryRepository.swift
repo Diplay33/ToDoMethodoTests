@@ -33,7 +33,6 @@ final class MemoryRepository: TaskRepositoryProtocol {
 
     /// Deletes a task by its unique identifier.
     func deleteTask(byId id: UUID) throws {
-        // `removeValue(forKey:)` returns the removed value, or nil if the key wasn't present.
         guard tasks.removeValue(forKey: id) != nil else {
             throw TaskError.taskNotFound(id: id)
         }

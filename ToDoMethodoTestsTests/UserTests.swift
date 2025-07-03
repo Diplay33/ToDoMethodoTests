@@ -21,13 +21,13 @@ struct UserMemoryTestEnvironmentFactory {
 
 struct UserTests {
 
+    @MainActor
     struct UserCreationTests {
         var service: UserService
         var repository: MemoryUserRepository
 
         init() {
-            repository = MemoryUserRepository()
-            service = UserService(repository: repository)
+            (repository, service) = UserMemoryTestEnvironmentFactory.create()
         }
 
         @Test("Créer un utilisateur avec des données valides")
@@ -75,15 +75,16 @@ struct UserTests {
             }
         }
     }
-    
+
+    @MainActor
     struct UserListTests {
 
         var service: UserService
         var repository: MemoryUserRepository
 
         init() {
-            repository = MemoryUserRepository()
-            service = UserService(repository: repository)
+            (repository, service) = UserMemoryTestEnvironmentFactory.create()
+            repository.clear()
         }
 
         @Test("Lister les utilisateurs les trie par nom par défaut")
@@ -103,11 +104,27 @@ struct UserTests {
             #expect(result.items.last?.name == "Charlie")
         }
 
+        @Test("Trier les utilisateurs par nom descendant")
+        func test_listUsers_sortsByNameDescending() throws {
+            // GIVEN
+            _ = try service.createUser(name: "Charlie", email: "c@test.com")
+            _ = try service.createUser(name: "Alice", email: "a@test.com")
+            _ = try service.createUser(name: "Bob", email: "b@test.com")
+
+            // WHEN
+            let result = try service.listUsers(sortBy: .byName(order: .descending))
+
+            // THEN
+            #expect(result.items.count == 3)
+            #expect(result.items.first?.name == "Charlie")
+            #expect(result.items.last?.name == "Alice")
+        }
+
         @Test("La pagination des utilisateurs fonctionne correctement")
         func test_listUsers_paginationWorks() throws {
             // GIVEN 22 utilisateurs
             for i in 1...22 {
-                let name = String(format: "User %02d", i)
+                let name = String(format: "User %02d", 23-i) // Create in reverse to test sorting
                 _ = try service.createUser(name: name, email: "\(i)@test.com")
             }
 
@@ -120,13 +137,28 @@ struct UserTests {
             #expect(result.metadata.currentPage == 2)
             #expect(result.metadata.totalItems == 22)
             #expect(result.metadata.totalPages == 3)
-            // AND le premier utilisateur de la page 2 est "User 11"
+            // AND le premier utilisateur de la page 2 est "User 11" (car ils sont triés par nom)
             #expect(result.items.first?.name == "User 11")
+        }
+
+        @Test("Demander une page d'utilisateurs au-delà des limites retourne une liste vide")
+        func test_listUsers_withOutOfBoundsPage_returnsEmptyList() throws {
+            // GIVEN
+            _ = try service.createUser(name: "Charlie", email: "c@test.com")
+
+            // WHEN
+            let result = try service.listUsers(page: 2, pageSize: 10)
+
+            // THEN
+            #expect(result.items.isEmpty)
+            #expect(result.metadata.totalItems == 1)
+            #expect(result.metadata.totalPages == 1)
+            #expect(result.metadata.currentPage == 2)
         }
 
         @Test("Lister les utilisateurs quand il n'y en a aucun")
         func test_listUsers_whenEmpty_returnsEmptyResult() throws {
-            // GIVEN un repository vide
+            // GIVEN un repository vide (assuré par le init)
 
             // WHEN je demande la liste des utilisateurs
             let result = try service.listUsers()
@@ -136,11 +168,15 @@ struct UserTests {
             #expect(result.metadata.totalItems == 0)
             #expect(result.metadata.totalPages == 0)
         }
+
+        @Test("Demander la liste des utilisateurs avec des paramètres de page invalides lève une erreur")
+        func test_listUsers_withInvalidPageParams_throwsError() throws {
+            #expect(throws: TaskError.invalidPageParameters) {
+                _ = try service.listUsers(page: 0)
+            }
+            #expect(throws: TaskError.invalidPageParameters) {
+                _ = try service.listUsers(pageSize: -5)
+            }
+        }
     }
 }
-
-
-
-
-
-

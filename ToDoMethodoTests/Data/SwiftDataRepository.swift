@@ -1,5 +1,5 @@
 //
-//  SwiftDataRepositoryProtocol.swift
+//  SwiftDataRepository.swift
 //  ToDoMethodoTests
 //
 //  Created by KILLIAN ADONAI on 30/06/2025.
@@ -10,11 +10,17 @@ import SwiftData
 
 /// An implementation of the task repository that uses SwiftData for persistence.
 final class SwiftDataToDoRepository: TaskRepositoryProtocol {
+    // MARK: - Private Properties
+
     private let context: ModelContext
+
+    // MARK: - Initializers
 
     init(context: ModelContext) {
         self.context = context
     }
+
+    // MARK: - Exposed Methods
 
     func getTask(byId id: UUID) throws -> TaskItem {
         let predicate = #Predicate<Item> { $0.id == id }
@@ -28,8 +34,21 @@ final class SwiftDataToDoRepository: TaskRepositoryProtocol {
     }
 
     func saveTask(_ task: TaskItem) throws {
-        let itemToSave = Item(from: task)
-        context.insert(itemToSave)
+        let idToFind = task.id
+        let predicate = #Predicate<Item> { $0.id == idToFind }
+        let fetchDescriptor = FetchDescriptor<Item>(predicate: predicate)
+
+        if let existingItem = try context.fetch(fetchDescriptor).first {
+            existingItem.title = task.title
+            existingItem.itemDescription = task.description
+            existingItem.timestamp = task.createdAt
+            existingItem.status = task.status
+            existingItem.statusOrder = task.status.sortOrder
+        } else {
+            let newItem = Item(from: task)
+            context.insert(newItem)
+        }
+
         try context.save()
     }
 
@@ -62,17 +81,17 @@ final class SwiftDataToDoRepository: TaskRepositoryProtocol {
         return PaginatedResult(items: taskItems, metadata: metadata)
     }
 
-    func listTasks(sortBy: TaskSortOption,filterByStatus: TaskStatus?, searchTerm: String?, page: Int, pageSize: Int) throws -> PaginatedResult<TaskItem> {
-
+    func listTasks(sortBy: TaskSortOption, filterByStatus: TaskStatus?, searchTerm: String?, page: Int, pageSize: Int) throws -> PaginatedResult<TaskItem> {
         let finalPredicate: Predicate<Item>?
-
         if let status = filterByStatus, let term = searchTerm, !term.isEmpty {
+            let statusOrder = status.sortOrder
             finalPredicate = #Predicate<Item> {
-                $0.status == status &&
+                $0.statusOrder == statusOrder &&
                 ($0.title.localizedStandardContains(term) || $0.itemDescription.localizedStandardContains(term))
             }
         } else if let status = filterByStatus {
-            finalPredicate = #Predicate<Item> { $0.status == status }
+            let statusOrder = status.sortOrder
+            finalPredicate = #Predicate<Item> { $0.statusOrder == statusOrder }
         } else if let term = searchTerm, !term.isEmpty {
             finalPredicate = #Predicate<Item> {
                 $0.title.localizedStandardContains(term) ||
@@ -84,24 +103,24 @@ final class SwiftDataToDoRepository: TaskRepositoryProtocol {
 
         var descriptor = FetchDescriptor<Item>(predicate: finalPredicate)
 
+        // Apply the correct sorting based on the `sortBy` parameter.
         switch sortBy {
             case .byCreationDate(let order):
                 descriptor.sortBy = [SortDescriptor(\.timestamp, order: order == .ascending ? .forward : .reverse)]
             case .byTitle(let order):
                 descriptor.sortBy = [SortDescriptor(\.title, order: order == .ascending ? .forward : .reverse)]
             case .byStatus:
-                descriptor.sortBy = [SortDescriptor(\.statusOrder, order: .forward)]
+                // Sort by status order first, then by date as a secondary criterion.
+                descriptor.sortBy = [SortDescriptor(\.statusOrder, order: .forward), SortDescriptor(\.timestamp, order: .reverse)]
         }
 
         let totalItems = try context.fetchCount(descriptor)
         let metadata = PaginationMetadata(currentPage: page, pageSize: pageSize, totalItems: totalItems)
 
-        descriptor.sortBy = [SortDescriptor(\.timestamp, order: .reverse)]
         descriptor.fetchLimit = pageSize
         descriptor.fetchOffset = (page - 1) * pageSize
 
         let items = try context.fetch(descriptor)
-
         let taskItems = items.map { TaskItem(from: $0) }
 
         return PaginatedResult(items: taskItems, metadata: metadata)
