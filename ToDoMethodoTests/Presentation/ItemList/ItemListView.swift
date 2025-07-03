@@ -14,45 +14,44 @@ struct ItemListView: View {
     @State var filteredItems: [Item] = []
     @State private var showingAddItemView = false
     @State var searchText: String = ""
+    @State var filterSelection: String = "ALL"
     
     var body: some View {
         NavigationSplitView {
             List {
                 if searchText.isEmpty {
-                    ForEach(filteredItems) { item in
-                        NavigationLink {
-                            ItemDetailView(item: item)
-                        } label: {
-                            Text(item.title)
-                        }
-                    }
-                    .onDelete(perform: deleteItems)
+                    ItemListDefaultContent(deleteItems: deleteItems, filteredItems: filteredItems, filterSelection: filterSelection)
                 }
                 else {
-                    Section(header: Text("Résultats pour \"\(searchText)\"")) {
-                        ForEach(filteredItems) { item in
-                            NavigationLink {
-                                ItemDetailView(item: item)
-                            } label: {
-                                Text(item.title)
-                            }
-                        }
-                        .onDelete(perform: deleteItems)
-                    }
+                    ItemListSearchResults(searchText: searchText, filteredItems: filteredItems, deleteItems: deleteItems)
                 }
                 
                 if filteredItems.isEmpty {
                     HStack {
-                        Text("No items found")
+                        Text(searchText.isEmpty ? "No items" : "No items found")
                     }
                     .frame(maxWidth: .infinity)
                 }
             }
             .navigationTitle("ToDo Items")
             .toolbar {
+                ToolbarItem {
+                    Menu {
+                        Picker("", selection: $filterSelection) {
+                            ForEach(["ALL"] + TaskStatus.allCases.map(\.rawValue), id: \.self) { status in
+                                Text(status)
+                            }
+                        }
+                    }
+                    label: {
+                        Label("", systemImage: "line.3.horizontal.decrease")
+                    }
+                }
+                
                 ToolbarItem(placement: .navigationBarTrailing) {
                     EditButton()
                 }
+                
                 ToolbarItem {
                     Button(action: { showingAddItemView = true }) {
                         Label("Add Item", systemImage: "plus")
