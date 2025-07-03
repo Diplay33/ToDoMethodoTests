@@ -82,7 +82,7 @@ final class SwiftDataToDoRepository: TaskRepositoryProtocol {
         return PaginatedResult(items: taskItems, metadata: metadata)
     }
 
-    func listTasks(sortBy: TaskSortOption, filterByStatus: TaskStatus?, searchTerm: String?, page: Int, pageSize: Int) throws -> PaginatedResult<TaskItem> {
+    func listTasks(sortBy: TaskSortOption, filterByStatus: TaskStatus?, filterByPriority: TaskPriority?, searchTerm: String?, page: Int, pageSize: Int) throws -> PaginatedResult<TaskItem> {
         let finalPredicate: Predicate<Item>?
         if let status = filterByStatus, let term = searchTerm, !term.isEmpty {
             let statusOrder = status.sortOrder
@@ -111,6 +111,8 @@ final class SwiftDataToDoRepository: TaskRepositoryProtocol {
                 descriptor.sortBy = [SortDescriptor(\.title, order: order == .ascending ? .forward : .reverse)]
             case .byStatus:
                 descriptor.sortBy = [SortDescriptor(\.statusOrder, order: .forward), SortDescriptor(\.timestamp, order: .reverse)]
+            case .byPriority(order: let order):
+                descriptor.sortBy = [SortDescriptor(\.priorityOrder, order: order == .ascending ? .forward : .reverse)]
         }
 
         let totalItems = try context.fetchCount(descriptor)

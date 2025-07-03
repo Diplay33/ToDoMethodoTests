@@ -59,7 +59,7 @@ struct AddItemView: View {
 
     private func addItem() {
         withAnimation {
-            let newItem = Item(id: UUID(), title: title.trimmingCharacters(in: .whitespacesAndNewlines), itemDescription: itemDescription, timestamp: Date(), dueDate: Date().addingTimeInterval(86400*7), status: .todo)
+            let newItem = Item(id: UUID(), title: title.trimmingCharacters(in: .whitespacesAndNewlines), itemDescription: itemDescription, timestamp: Date(), dueDate: Date().addingTimeInterval(86400*7), status: .todo, priority: .normal)
             modelContext.insert(newItem)
         }
     }

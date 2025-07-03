@@ -19,9 +19,11 @@ final class Item {
     var dueDate: Date?
     var status: TaskStatus
     var statusOrder: Int
+    var priority: TaskPriority
+    var priorityOrder: Int
     // MARK: - Initializers
 
-    init(id: UUID, title: String, itemDescription: String, timestamp: Date, dueDate: Date?, status: TaskStatus) {
+    init(id: UUID, title: String, itemDescription: String, timestamp: Date, dueDate: Date?, status: TaskStatus, priority: TaskPriority) {
         self.id = id
         self.title = title
         self.itemDescription = itemDescription
@@ -29,6 +31,8 @@ final class Item {
         self.dueDate = dueDate
         self.status = status
         self.statusOrder = status.sortOrder
+        self.priority = priority
+        self.priorityOrder = priority.sortOrder
     }
 
     /// Convenience initializer to map from the business model `ToDoItem`.
@@ -39,7 +43,8 @@ final class Item {
             itemDescription: domainModel.description,
             timestamp: domainModel.createdAt,
             dueDate: domainModel.dueDate,
-            status: domainModel.status
+            status: domainModel.status,
+            priority: domainModel.priority
         )
     }
 }
@@ -51,6 +56,25 @@ enum TaskStatus: String, Codable, CaseIterable {
     case todo = "TODO"
     case inProgress = "ONGOING"
     case done = "DONE"
+}
+
+/// Represents the priority of a task
+enum TaskPriority: String, Codable, CaseIterable {
+    case low = "LOW"
+    case normal = "NORMAL"
+    case high = "HIGH"
+    case critical = "CRITICAL"
+}
+
+extension TaskPriority {
+    var sortOrder: Int {
+        switch self {
+            case .low: return 3
+            case .normal: return 2
+            case .high: return 1
+            case .critical: return 0
+        }
+    }
 }
 
 extension TaskStatus {
@@ -72,9 +96,10 @@ struct TaskItem: Equatable {
     var createdAt: Date
     var dueDate: Date?
     var status: TaskStatus
+    var priority: TaskPriority
 
     /// Initializer for creating a NEW task with validation.
-    init(title: String, description: String = "", creationDate: Date = Date(), dueDate: Date? = nil) throws {
+    init(title: String, description: String = "", creationDate: Date = Date(), dueDate: Date? = nil, priority: TaskPriority = .normal) throws {
         let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedTitle.isEmpty else { throw TaskError.titleRequired }
         guard trimmedTitle.count <= 100 else { throw TaskError.titleTooLong(count: trimmedTitle.count) }
@@ -86,7 +111,9 @@ struct TaskItem: Equatable {
         self.createdAt = creationDate
         self.dueDate = dueDate
         self.status = .todo
+        self.priority = priority
     }
+
 
     /// Initializer for reconstructing an existing task from a persistence model.
     init(from persistenceModel: Item) {
@@ -96,6 +123,7 @@ struct TaskItem: Equatable {
         self.createdAt = persistenceModel.timestamp
         self.dueDate = persistenceModel.dueDate
         self.status = persistenceModel.status
+        self.priority = persistenceModel.priority
     }
 
     func updating(newTitle: String, newDescription: String) throws -> TaskItem {
@@ -120,6 +148,12 @@ struct TaskItem: Equatable {
     func updatingDueDate(to newDueDate: Date?) throws -> TaskItem {
         var updatedTask = self
         updatedTask.dueDate = newDueDate
+        return updatedTask
+    }
+
+    func updatingPriority(to newPriority: TaskPriority) -> TaskItem {
+        var updatedTask = self
+        updatedTask.priority = newPriority
         return updatedTask
     }
 }

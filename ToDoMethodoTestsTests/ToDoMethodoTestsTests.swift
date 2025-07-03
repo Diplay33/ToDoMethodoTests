@@ -828,6 +828,80 @@ struct TaskTests {
         }
     }
 
+    @MainActor
+    struct TaskPriorityTests {
+        let repository: MemoryRepository
+        let service: TaskService
+
+        init() {
+            (repository, service) = MemoryTestEnvironmentFactory.create()
+        }
+
+        @Test("La priorité par défaut est NORMALE")
+        func test_defaultPriorityIsNormal() throws {
+            let task = try service.createTask(title: "Nouvelle tâche")
+            #expect(task.priority == .normal)
+        }
+
+        @Test("Attribuer une priorité lors de la création")
+        func test_assignPriorityOnCreation() throws {
+            let task = try service.createTask(title: "Tâche critique", priority: .critical)
+            #expect(task.priority == .critical)
+        }
+
+        @Test("Modifier la priorité d'une tâche existante")
+        func test_changePriorityOfExistingTask() throws {
+            var task = try service.createTask(title: "Tâche à promouvoir")
+            #expect(task.priority == .normal)
+
+            task = try service.changeTaskPriority(byIdString: task.id.uuidString, newPriority: TaskPriority.high)
+            #expect(task.priority == .high)
+
+            let persistedTask = try service.findTask(byIdString: task.id.uuidString)
+            #expect(persistedTask.priority == .high)
+        }
+
+        @Test("Tenter de définir une priorité invalide lève une erreur")
+        func test_setInvalidPriority() {
+            let invalidPriorityValue = "URGENT"
+            let priority = TaskPriority(rawValue: invalidPriorityValue)
+            #expect(priority == nil)
+        }
+
+
+        @Test("Trier les tâches par priorité")
+        func test_sortTasksByPriority() throws {
+            // GIVEN
+            _ = try service.createTask(title: "Basse", priority: .low)
+            _ = try service.createTask(title: "Critique", priority: .critical)
+            _ = try service.createTask(title: "Haute", priority: .high)
+            _ = try service.createTask(title: "Normale", priority: .normal)
+
+            // WHEN
+            let result = try service.listTasks(sortBy: .byPriority(order: .ascending), pageSize: 10)
+
+            // THEN
+            let priorities = result.items.map { $0.priority }
+            #expect(priorities == [.critical, .high, .normal, .low])
+        }
+
+        @Test("Filtrer les tâches par priorité")
+        func test_filterTasksByPriority() throws {
+            // GIVEN
+            _ = try service.createTask(title: "Basse 1", priority: .low)
+            _ = try service.createTask(title: "Critique 1", priority: .critical)
+            _ = try service.createTask(title: "Haute 1", priority: .high)
+            _ = try service.createTask(title: "Haute 2", priority: .high)
+
+            // WHEN
+            let result = try service.listTasks(filterByPriority: .high, pageSize: 10)
+
+            // THEN
+            #expect(result.items.count == 2)
+            #expect(result.items.allSatisfy { $0.priority == .high })
+        }
+    }
+
     // MARK: - Integration Tests for SwiftData Repository
 
     @MainActor
@@ -950,31 +1024,31 @@ struct TaskTests {
             try repository.saveTask(taskD)
 
             // Test 1: Filter by status
-            var result = try repository.listTasks(sortBy: .byCreationDate(order: .descending), filterByStatus: .inProgress, searchTerm: nil, page: 1, pageSize: 10)
+            var result = try repository.listTasks(sortBy: .byCreationDate(order: .descending), filterByStatus: .inProgress, filterByPriority: nil, searchTerm: nil, page: 1, pageSize: 10)
             #expect(result.items.count == 1)
             #expect(result.items.first?.title == "Banana Recipe")
 
             // Test 2: Search by term
-            result = try repository.listTasks(sortBy: .byCreationDate(order: .descending), filterByStatus: nil, searchTerm: "apple", page: 1, pageSize: 10)
+            result = try repository.listTasks(sortBy: .byCreationDate(order: .descending), filterByStatus: nil, filterByPriority: nil, searchTerm: "apple", page: 1, pageSize: 10)
             #expect(result.items.count == 2)
             #expect(result.items.map(\.title).contains("Apple Project"))
             #expect(result.items.map(\.title).contains("Dog Walk"))
 
             // Test 3: Filter and search
-            result = try repository.listTasks(sortBy: .byCreationDate(order: .descending), filterByStatus: .todo, searchTerm: "car", page: 1, pageSize: 10)
+            result = try repository.listTasks(sortBy: .byCreationDate(order: .descending), filterByStatus: .todo, filterByPriority: nil, searchTerm: "car", page: 1, pageSize: 10)
             #expect(result.items.count == 1)
             #expect(result.items.first?.title == "Car Wash")
 
             // Test 4: Sort by title ascending
-            result = try repository.listTasks(sortBy: .byTitle(order: .ascending), filterByStatus: nil, searchTerm: nil, page: 1, pageSize: 10)
+            result = try repository.listTasks(sortBy: .byTitle(order: .ascending), filterByStatus: nil, filterByPriority: nil, searchTerm: nil, page: 1, pageSize: 10)
             #expect(result.items.map(\.title) == ["Apple Project", "Banana Recipe", "Car Wash", "Dog Walk"])
 
             // Test 5: Sort by status
-            result = try repository.listTasks(sortBy: .byStatus, filterByStatus: nil, searchTerm: nil, page: 1, pageSize: 10)
+            result = try repository.listTasks(sortBy: .byStatus, filterByStatus: nil, filterByPriority: nil, searchTerm: nil, page: 1, pageSize: 10)
             #expect(result.items.map(\.status) == [.todo, .todo, .inProgress, .done])
 
             // Test 6: Empty result from filtering
-            let emptyResult = try repository.listTasks(sortBy: .byCreationDate(order: .descending), filterByStatus: .done, searchTerm: "nonexistent", page: 1, pageSize: 10)
+            let emptyResult = try repository.listTasks(sortBy: .byCreationDate(order: .descending), filterByStatus: .done, filterByPriority: nil, searchTerm: "nonexistent", page: 1, pageSize: 10)
             #expect(emptyResult.items.isEmpty)
             #expect(emptyResult.metadata.totalItems == 0)
         }

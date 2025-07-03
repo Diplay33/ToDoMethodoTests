@@ -30,8 +30,8 @@ final class TaskService {
         return try repository.getTask(byId: uuid)
     }
 
-    func createTask(title: String, description: String = "") throws -> TaskItem {
-        let newTask = try TaskItem(title: title, description: description)
+    func createTask(title: String, description: String = "", priority: TaskPriority = .normal) throws -> TaskItem {
+        let newTask = try TaskItem(title: title, description: description, priority: priority)
         try repository.saveTask(newTask)
         return newTask
     }
@@ -56,6 +56,16 @@ final class TaskService {
         }
         let originalTask = try repository.getTask(byId: uuid)
         let updatedTask = originalTask.updatingStatus(to: newStatus)
+        try repository.saveTask(updatedTask)
+        return updatedTask
+    }
+
+    func changeTaskPriority(byIdString idString: String, newPriority: TaskPriority) throws -> TaskItem {
+        guard let uuid = UUID(uuidString: idString) else {
+            throw TaskError.invalidIDFormat
+        }
+        let originalTask = try repository.getTask(byId: uuid)
+        let updatedTask = originalTask.updatingPriority(to: newPriority)
         try repository.saveTask(updatedTask)
         return updatedTask
     }
@@ -88,6 +98,7 @@ final class TaskService {
     func listTasks(
         sortBy: TaskSortOption = .byCreationDate(order: .descending),
         filterByStatus: TaskStatus? = nil,
+        filterByPriority: TaskPriority? = nil,
         searchTerm: String? = nil,
         page: Int = 1,
         pageSize: Int = 20
@@ -101,6 +112,7 @@ final class TaskService {
         return try repository.listTasks(
             sortBy: sortBy,
             filterByStatus: filterByStatus,
+            filterByPriority: filterByPriority,
             searchTerm: trimmedSearchTerm,
             page: page,
             pageSize: pageSize

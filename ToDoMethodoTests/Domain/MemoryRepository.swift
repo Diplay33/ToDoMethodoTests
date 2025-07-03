@@ -66,6 +66,7 @@ final class MemoryRepository: TaskRepositoryProtocol {
     func listTasks(
         sortBy: TaskSortOption,
         filterByStatus: TaskStatus?,
+        filterByPriority: TaskPriority?,
         searchTerm: String?,
         page: Int,
         pageSize: Int
@@ -75,6 +76,10 @@ final class MemoryRepository: TaskRepositoryProtocol {
 
         if let status = filterByStatus {
             resultTasks = resultTasks.filter { $0.status == status }
+        }
+
+        if let priority = filterByPriority {
+            resultTasks = resultTasks.filter { $0.priority == priority }
         }
 
         if let term = searchTerm, !term.isEmpty {
@@ -104,6 +109,14 @@ final class MemoryRepository: TaskRepositoryProtocol {
                 }
             case .byStatus:
                 resultTasks.sort { $0.status.sortOrder < $1.status.sortOrder }
+            case .byPriority(let order):
+                resultTasks.sort {
+                    if order == .ascending {
+                        return $0.priority.sortOrder < $1.priority.sortOrder
+                    } else {
+                        return $0.priority.sortOrder > $1.priority.sortOrder
+                    }
+                }
         }
 
         let totalItems = resultTasks.count

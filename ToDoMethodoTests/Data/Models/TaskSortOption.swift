@@ -16,4 +16,5 @@ enum TaskSortOption {
     case byCreationDate(order: SortOrder)
     case byTitle(order: SortOrder)
     case byStatus
+    case byPriority(order: SortOrder)
 }
