@@ -13,6 +13,7 @@ struct ItemListView: View {
     @Query(sort: \Item.timestamp, order: .reverse) private var items: [Item]
     @State var filteredItems: [Item] = []
     @State private var showingAddItemView = false
+    @State private var showingUsersView = false
     @State var searchText: String = ""
     @State var filterSelection: String = "ALL"
     @State var sortSelection: SortOption = .date
@@ -71,12 +72,21 @@ struct ItemListView: View {
                         Label("Add Item", systemImage: "plus")
                     }
                 }
+                
+                ToolbarItem(placement: .topBarLeading) {
+                    Button(action: { showingUsersView = true }) {
+                        Label("Show User", systemImage: "person.crop.circle")
+                    }
+                }
             }
         } detail: {
             Text("Select an item")
         }
         .sheet(isPresented: $showingAddItemView) {
             AddItemView()
+        }
+        .sheet(isPresented: $showingUsersView) {
+            UsersView()
         }
         .searchable(text: $searchText, prompt: Text("Search a Task"))
         .onAppear { self.filteredItems = searchItems() }

@@ -19,6 +19,7 @@ struct ToDoMethodoTestsApp: App {
     init() {
         let schema = Schema([
             Item.self,
+            User.self
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 
