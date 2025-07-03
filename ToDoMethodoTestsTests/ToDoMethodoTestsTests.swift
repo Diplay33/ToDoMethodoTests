@@ -443,9 +443,9 @@ struct TaskTests {
         @Test("Demander une page au-delà des limites (complex list) retourne une liste vide")
         func test_complexListTasks_withOutOfBoundsPage_returnsEmptyList() throws {
             // GIVEN 3 tâches avec le même statut
-            _ = try service.createTask(title: "Task 1") // status = .todo
-            _ = try service.createTask(title: "Task 2") // status = .todo
-            _ = try service.createTask(title: "Task 3") // status = .todo
+            _ = try service.createTask(title: "Task 1")
+            _ = try service.createTask(title: "Task 2")
+            _ = try service.createTask(title: "Task 3")
 
             // WHEN je demande la deuxième page (qui n'existe pas) en utilisant un filtre.
             // Il y a 3 items au total, donc avec un pageSize de 5, il n'y a qu'une seule page.
