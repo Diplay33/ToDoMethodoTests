@@ -34,8 +34,7 @@ struct ItemDetailView: View {
                     Spacer()
                     
                     Button(action: { withAnimation { showDatePicker.toggle() } }) {
-                        Text("Edit")
-                            .buttonStyle(.borderedProminent)
+                        Text(showDatePicker ? "Done" : "Edit")
                     }
                 }
                 
