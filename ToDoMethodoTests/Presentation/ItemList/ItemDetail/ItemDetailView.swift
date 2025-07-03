@@ -58,7 +58,7 @@ struct ItemDetailView: View {
                     HStack {
                         HStack {
                             Circle()
-                                .foregroundStyle(computeColor(item.status))
+                                .foregroundStyle(computeStatusColor(item.status))
                                 .frame(height: 16)
                             
                             Text(item.status.rawValue)
@@ -71,19 +71,45 @@ struct ItemDetailView: View {
                 .buttonStyle(PlainButtonStyle())
                 .frame(maxWidth: .infinity)
             }
+            
+            Section("Priority Level") {
+                Menu {
+                    ForEach(TaskPriority.allCases, id: \.self) { level in
+                        Toggle(level.rawValue, isOn: Binding(get: { item.priority == level } , set: { _ in item.priority = level }))
+                    }
+                }
+                label: {
+                    VStack(alignment: .leading) {
+                        HStack {
+                            Circle()
+                                .foregroundStyle(computePriorityColor(item.priority))
+                                .frame(height: 16)
+                            
+                            Text(item.priority.rawValue)
+                        }
+                    }
+                }
+                .buttonStyle(PlainButtonStyle())
+            }
         }
         .navigationTitle("Item Details")
         .navigationBarTitleDisplayMode(.inline)
     }
 
-    private func computeColor(_ status: TaskStatus) -> Color {
+    private func computeStatusColor(_ status: TaskStatus) -> Color {
         switch status {
-            case .done:
-                    .green
-            case .inProgress:
-                    .orange
-            case .todo:
-                    .blue
+            case .done: .green
+            case .inProgress: .orange
+            case .todo: .blue
+        }
+    }
+    
+    private func computePriorityColor(_ priority: TaskPriority) -> Color {
+        switch priority {
+        case .critical: .red
+        case .high: .orange
+        case .normal: .yellow
+        case .low: .gray
         }
     }
 }
