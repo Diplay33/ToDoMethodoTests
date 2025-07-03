@@ -15,12 +15,13 @@ struct ItemListView: View {
     @State private var showingAddItemView = false
     @State var searchText: String = ""
     @State var filterSelection: String = "ALL"
+    @State var sortSelection: SortOption = .date
     
     var body: some View {
         NavigationSplitView {
             List {
                 if searchText.isEmpty {
-                    ItemListDefaultContent(deleteItems: deleteItems, filteredItems: filteredItems, filterSelection: filterSelection)
+                    ItemListDefaultContent(deleteItems: deleteItems, filteredItems: filteredItems, filterSelection: filterSelection, sortSelection: sortSelection)
                 }
                 else {
                     ItemListSearchResults(searchText: searchText, filteredItems: filteredItems, deleteItems: deleteItems)
@@ -35,6 +36,19 @@ struct ItemListView: View {
             }
             .navigationTitle("ToDo Items")
             .toolbar {
+                ToolbarItem {
+                    Menu {
+                        Picker("", selection: $sortSelection) {
+                            ForEach(SortOption.allCases, id: \.self) { option in
+                                Text(option.rawValue.capitalized)
+                            }
+                        }
+                    }
+                    label: {
+                        Label("", systemImage: "arrow.up.arrow.down")
+                    }
+                }
+                
                 ToolbarItem {
                     Menu {
                         Picker("", selection: $filterSelection) {
@@ -81,6 +95,10 @@ struct ItemListView: View {
     private func searchItems() -> [Item] {
         searchText.isEmpty ? items : items.filter { $0.title.contains(searchText) }
     }
+}
+
+enum SortOption: String, CaseIterable {
+    case date, name, status
 }
 
 #Preview {

@@ -11,9 +11,10 @@ struct ItemListDefaultContent: View {
     var deleteItems: (IndexSet) -> Void
     var filteredItems: [Item]
     var filterSelection: String
+    var sortSelection: SortOption
     
     var body: some View {
-        ForEach(filterItemsByFilterSelection()) { item in
+        ForEach(filterAndSortItems()) { item in
             NavigationLink {
                 ItemDetailView(item: item)
             } label: {
@@ -23,12 +24,17 @@ struct ItemListDefaultContent: View {
         .onDelete(perform: deleteItems)
     }
     
-    private func filterItemsByFilterSelection() -> [Item] {
-        guard filterSelection != "ALL" else { return filteredItems }
-        return filteredItems.filter { $0.status.rawValue == filterSelection }
+    private func filterAndSortItems() -> [Item] {
+        var filteredItems = filterSelection == "ALL" ? filteredItems : filteredItems.filter { $0.status.rawValue == filterSelection }
+        switch sortSelection {
+        case .date: break
+        case .name: filteredItems.sort(by: { $0.title < $1.title })
+        case .status: filteredItems.sort(by: { $0.status.sortOrder < $1.status.sortOrder })
+        }
+        return filteredItems
     }
 }
 
 #Preview {
-    ItemListDefaultContent(deleteItems: { _ in }, filteredItems: [], filterSelection: "ALL")
+    ItemListDefaultContent(deleteItems: { _ in }, filteredItems: [], filterSelection: "ALL", sortSelection: .date)
 }
