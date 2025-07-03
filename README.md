@@ -179,3 +179,5 @@
 ✔ Suite TaskTests passed after 0.091 seconds.
 ✔ Test run with 72 tests passed after 0.091 seconds.
 ```
+
+<img width="600" alt="Capture d’écran 2025-07-03 à 15 12 15" src="https://github.com/user-attachments/assets/02b73aa7-7dfe-4a3a-bd0e-4cd5f45c9d33" />
