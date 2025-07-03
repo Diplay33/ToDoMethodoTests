@@ -424,8 +424,7 @@ struct TaskTests {
             #expect(result.metadata.currentPage == 2, "La page actuelle doit être 2")
         }
 
-        // MARK: - THIS TEST COVERS THE GUARD STATEMENT
-        @Test("Demander une page au-delà des limites retourne une liste vide")
+        @Test("Demander une page au-delà des limites (simple list) retourne une liste vide")
         func test_listTasks_withOutOfBoundsPage_returnsEmptyList() throws {
             // GIVEN une seule tâche
             try repository.saveTask(try TaskItem(title: "Une Tâche"))
@@ -439,6 +438,24 @@ struct TaskTests {
             #expect(result.metadata.currentPage == 2, "La page demandée reste 2")
             #expect(result.metadata.totalItems == 1, "Le total reste 1")
             #expect(result.metadata.totalPages == 1, "Le nombre de pages reste 1")
+        }
+
+        @Test("Demander une page au-delà des limites (complex list) retourne une liste vide")
+        func test_complexListTasks_withOutOfBoundsPage_returnsEmptyList() throws {
+            // GIVEN 3 tâches avec le même statut
+            _ = try service.createTask(title: "Task 1") // status = .todo
+            _ = try service.createTask(title: "Task 2") // status = .todo
+            _ = try service.createTask(title: "Task 3") // status = .todo
+
+            // WHEN je demande la deuxième page (qui n'existe pas) en utilisant un filtre.
+            // Il y a 3 items au total, donc avec un pageSize de 5, il n'y a qu'une seule page.
+            let result = try service.listTasks(filterByStatus: .todo, page: 2, pageSize: 5)
+
+            // THEN j'obtiens une liste vide mais les bonnes métadonnées
+            #expect(result.items.isEmpty, "La liste d'items doit être vide")
+            #expect(result.metadata.currentPage == 2, "La page demandée reste 2")
+            #expect(result.metadata.totalItems == 3, "Le total des items filtrés doit être 3")
+            #expect(result.metadata.totalPages == 1, "Le nombre de pages doit être 1")
         }
 
         @Test("Demander la liste avec les paramètres par défaut")
