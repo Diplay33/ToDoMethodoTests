@@ -8,6 +8,8 @@
 import SwiftUI
 
 struct ItemDetailView: View {
+    @State var showDatePicker: Bool = false
+    
     let item: Item
 
     var body: some View {
@@ -18,6 +20,29 @@ struct ItemDetailView: View {
             
             Section("Description") {
                 TextField("Description is empty", text: Binding(get: { item.itemDescription }, set: { item.itemDescription = $0 }))
+            }
+            
+            Section("Due Date") {
+                HStack {
+                    if let dueDate = item.dueDate {
+                        Text(dueDate, format: Date.FormatStyle(date: .long, time: .standard))
+                    }
+                    else {
+                        Text("No due date set")
+                    }
+                    
+                    Spacer()
+                    
+                    Button(action: { withAnimation { showDatePicker.toggle() } }) {
+                        Text("Edit")
+                            .buttonStyle(.borderedProminent)
+                    }
+                }
+                
+                if showDatePicker {
+                    DatePicker("", selection: Binding(get: { item.dueDate ?? .now }, set: { item.dueDate = $0 }))
+                        .datePickerStyle(.graphical)                    
+                }
             }
             
             Section("Created Date") {
