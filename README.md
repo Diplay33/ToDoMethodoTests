@@ -1,3 +1,4 @@
+```
 ◇ Test run started.
 ↳ Testing Library Version: 94 (arm64-apple-ios13.0-simulator)
 ◇ Suite UserTests started.
@@ -163,3 +164,4 @@
 ✔ Suite TaskItemEditTests passed after 0.080 seconds.
 ✔ Suite TaskTests passed after 0.082 seconds.
 ✔ Test run with 66 tests passed after 0.082 seconds.
+```
